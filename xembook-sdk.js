@@ -12,6 +12,7 @@ let provisionNamespace = 0x2001; // 8193
 let mosaicDefinition = 0x4001; // 16385
 let mosaicSupply = 0x4002; // 16386
 let CURRENT_NETWORK_ID = 104;
+var isHashAccess = false;
 
 var currentFeeFactor = 0.05;
 
@@ -721,6 +722,74 @@ var getVersion = function getVersion(val, network) {
 	}
 	return 0x60000000 | val;
 };
+
+function getNodes(){
+
+	var d = $.Deferred();
+	$.ajax({url: "https://s3-ap-northeast-1.amazonaws.com/xembook.net/data/v3/node.json" ,type: 'GET',timeout: 1000}).then(
+		function(res){
+			var nodes;
+			if(isHashAccess){
+				nodes = res["apostille"];
+			}else{
+				nodes = res["http"];
+			}
+			d.resolve(nodes);
+		},
+		function(res){
+			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice5.nem.ninja","alice6.nem.ninja"]);
+		}
+	);
+	return d.promise();
+}
+
+function connectNode(nodes,query2,getData,nodeIndex){
+
+	if(targetNode == "" || isHashAccess){
+		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
+	}
+
+	var d = $.Deferred();
+	var res = $.ajax({url:  "http://" + targetNode + query2 ,type: 'GET',timeout: 3000}).then(
+
+		function(res){
+			d.resolve(res);
+		}
+
+	).catch(
+		function(res){
+
+			if(lastHash != ""){
+				console.log("ハッシュアクセスモードに切り替えます。");
+				isHashAccess = true;
+			}
+			return catapult(getData,nodeIndex + 1);
+		}
+	);
+	return d.promise();
+}
+
+var catapult = function(api,num){
+	var nodeIndex = num;
+
+	Array.apply(1, {length: num}).reduce(
+		function(promise){
+			return promise.then(
+				function(param){
+					nodeIndex--;
+					return api(nodeIndex);
+				}
+			);
+		},
+		$.Deferred().resolve()
+	).then(
+		function(){
+			console.log("done!");
+		}
+	);
+}
+
+
 
 function fixPrivateKey(privatekey) {
 	return ("0000000000000000000000000000000000000000000000000000000000000000" + privatekey.replace(/^00/, '')).slice(-64);
