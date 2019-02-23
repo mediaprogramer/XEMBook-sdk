@@ -18,7 +18,7 @@
 
 $(function(){
 
-	
+
 	var s = nacl.randomBytes(32);
 	var k = KeyPair.create(s);
 	var addr = toAddress(k.publicKey.toString(), "104");
@@ -67,11 +67,11 @@ $(function(){
 		var res = getNodes()
 		.then(function(nodes){
 
-			account_get_address_query = "/account/get?address=" + address;
+			account_get_address_query = "/account/get?address=" + addr;
 			return connectNode(nodes,account_get_address_query,getNemAccountData,nodeIndex);
 
 		}).then(function(result){
-		
+
 			//取得成功
 			parse_transfers(result);
 		});
@@ -132,8 +132,8 @@ $(function(){
 			return c * Math.cos(Math.PI * 2 * b) * s + m;
 		}
 	};
-	
-	
+
+
 });
 
 </script>

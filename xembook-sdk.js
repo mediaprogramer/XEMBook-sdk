@@ -13,6 +13,7 @@ let mosaicDefinition = 0x4001; // 16385
 let mosaicSupply = 0x4002; // 16386
 let CURRENT_NETWORK_ID = 104;
 var isHashAccess = false;
+var targetNode = "";
 
 var currentFeeFactor = 0.05;
 
@@ -798,7 +799,7 @@ function fixPrivateKey(privatekey) {
 var MOSAICS = [
 	{"mosaicId":{'name': "xem" ,'namespaceId': "nem"   },"quantity":1,"supply":8999999999,"divisibility":6},
 	{"mosaicId":{'name': "ripe",'namespaceId': "tomato"},"quantity":1,"supply":100000	 ,"divisibility":0}
-]; 
+];
 
 function sendAjaxRequest(){
 
