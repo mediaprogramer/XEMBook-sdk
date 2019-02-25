@@ -29,10 +29,15 @@ $(function(){
 	//未承認チェック開始
 	var unconf_check = setInterval(function polling(){
 
+		catapult(getNemUnconfirmedTransactionsData,1);
+
+/*
 		$.ajax({url: "http://beny.supernode.me:7890/account/unconfirmedTransactions?address=" + addr ,type: 'GET'}
 		).done(
 			function(res){parse_unconfirm(res)}
 		);
+*/
+
 		return polling;
 
 	}(),3000);
@@ -61,6 +66,23 @@ $(function(){
 		});
 	};
 
+	//未承認トランザクションの取得
+	var getNemUnconfirmedTransactionsData = function(nodeIndex){
+
+		var res = getNodes()
+		.then(function(nodes){
+
+			account_get_address_query = "/account/unconfirmedTransactions?address=" + addr;
+			return connectNode(nodes,account_get_address_query,getNemUnconfirmedTransactionsData,nodeIndex);
+
+		}).then(function(result){
+
+			parse_unconfirm(result);
+		});
+		return res;
+	}
+
+
 	//アカウントデータの取得
 	var getNemAccountData = function(nodeIndex){
 
@@ -86,7 +108,6 @@ $(function(){
 
 			clearInterval(conf_check);
 			console.log("入金を確認しました。");
-			alert("入金を確認しました。");
 			is_confirmed=true;
 			ticker = 50;
 			incr = 20;
