@@ -744,6 +744,11 @@ function getNodes(){
 	return d.promise();
 }
 
+function connectNode(nodes,query2,getData){
+	connectNode(nodes,query2,getData,1);
+}
+
+
 function connectNode(nodes,query2,getData,nodeIndex){
 
 	if(targetNode == "" || isHashAccess){
@@ -792,9 +797,6 @@ var catapult = function(api,num){
 
 
 
-function fixPrivateKey(privatekey) {
-	return ("0000000000000000000000000000000000000000000000000000000000000000" + privatekey.replace(/^00/, '')).slice(-64);
-}
 
 var MOSAICS = [
 	{"mosaicId":{'name': "xem" ,'namespaceId': "nem"   },"quantity":1,"supply":8999999999,"divisibility":6},

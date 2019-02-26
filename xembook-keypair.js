@@ -8,16 +8,15 @@ let KeyPair = function(ua) {
 	}
 
 	pk =  ("0000000000000000000000000000000000000000000000000000000000000000" + pk.replace(/^00/, '')).slice(-64);
-	let sk = new Uint8Array(pk.length / 2);
+	this.secretKey = new Uint8Array(pk.length / 2);
 	delete pk;
 
 	for (let i = 0; i < pk.length; i += 2) {
-		sk[sk.length - 1 - (i / 2)] = parseInt(pk.substr(i, 2), 16);
+		this.secretKey[this.secretKey.length - 1 - (i / 2)] = parseInt(pk.substr(i, 2), 16);
 	}
 	
 	this.publicKey = new BinaryKey(new Uint8Array(nacl.lowlevel.crypto_sign_PUBLICKEYBYTES));
-	nacl.lowlevel.crypto_sign_keypair_hash(this.publicKey.data, sk, hashfunc);
-	delete sk;
+	nacl.lowlevel.crypto_sign_keypair_hash(this.publicKey.data, this.secretKey, hashfunc);
 	
 	this.sign = function(data) {
 		let sig = new Uint8Array(64);
