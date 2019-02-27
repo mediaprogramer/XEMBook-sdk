@@ -25,85 +25,51 @@ $(function(){
 	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":1000000,"msg":""}}';
 	$("#receiverqr").attr("src","http://chart.apis.google.com/chart?chs=180x180&cht=qr&chl=" + bill);
 	$("#asset_qr").text(addr);
+	var checkInterval = 3000;
 
 	//未承認チェック開始
-	var unconf_check = setInterval(function(){
+	var unconfCheck = setInterval(function(){
 
-//		catapult(getNemUnconfirmedTransactionsData,1);
-		getNemUnconfirmedTransactionsData();
+		accessNem(
+			"/account/unconfirmedTransactions?address=" + addr
+		).then(function(res){
+			callbackParseUnconfirm(res);
+		});
 
-	},3000);
-
+	},checkInterval);
 
 	//未承認チェック
-	var parse_unconfirm = function(result){
+	var callbackParseUnconfirm = function(result){
 
 		var dataArray = result.data;
 		dataArray.some(function(val){
 
-
+			progress(count);
 			var $modal = $('.js-loading-bar');
 			var $bar = $modal.find('.progress-bar');
-
-			progress(count);
 			$modal.modal('show');
 
-			clearInterval(unconf_check);			//未承認チェック終了
-			conf_check = setInterval(function(){	//承認チェック開始
+			clearInterval(unconfCheck);			//未承認チェック終了
+			confCheck = setInterval(function(){	//承認チェック開始
 
 				//アカウント情報の取得
-//				catapult(getNemAccountData,1);
-				getNemAccountData();
+				accessNem(
+					"/account/get?address=" + addr
+				).then(function(res){
+					callbackParseTransfers(res);
+				});
 
-			},3000);
+			},checkInterval);
 		});
 	};
 
-	//未承認トランザクションの取得
-//	var getNemUnconfirmedTransactionsData = function(nodeIndex){
-	var getNemUnconfirmedTransactionsData = function(){
-
-		var res = getNodes()
-		.then(function(nodes){
-
-			let query = "/account/unconfirmedTransactions?address=" + addr;
-//			return connectNode(nodes,query,getNemUnconfirmedTransactionsData,nodeIndex);
-			return connectNode(nodes,query,getNemUnconfirmedTransactionsData);
-
-		}).then(function(result){
-
-			parse_unconfirm(result);
-		});
-		return res;
-	}
-
-
-	//アカウントデータの取得
-//	var getNemAccountData = function(nodeIndex){
-	var getNemAccountData = function(){
-
-		var res = getNodes()
-		.then(function(nodes){
-
-			let query = "/account/get?address=" + addr;
-//			return connectNode(nodes,query,getNemAccountData,nodeIndex);
-			return connectNode(nodes,query,getNemAccountData);
-
-		}).then(function(result){
-
-			//取得成功
-			parse_transfers(result);
-		});
-		return res;
-	}
-
-	var parse_transfers = function(result){
+	var callbackParseTransfers = function(result){
 
 		console.log(result);
 		var balance = result.account.balance;
 		if(balance > 0){
 
-			clearInterval(conf_check);
+			clearInterval(confCheck);
 			console.log("入金を確認しました。");
 			is_confirmed=true;
 			ticker = 50;
@@ -118,6 +84,7 @@ $(function(){
 	var is_confirmed = false;
 	var incr = 1;
 
+	//着金確認プログレスバー
 	function progress(count){
 		setTimeout(function(){
 			var $modal = $('.js-loading-bar');

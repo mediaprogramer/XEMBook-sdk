@@ -14,6 +14,7 @@ let mosaicSupply = 0x4002; // 16386
 let CURRENT_NETWORK_ID = 104;
 var isHashAccess = false;
 var targetNode = "";
+var lastHash = "";
 
 var currentFeeFactor = 0.05;
 
@@ -794,6 +795,16 @@ var catapult = function(api,num){
 		}
 	);
 }
+
+var accessNem = function(query){
+
+	var res = getNodes()
+	.then(function(nodes){
+		return connectNode(nodes,query,this);
+	});
+	return res;
+}
+
 
 
 
