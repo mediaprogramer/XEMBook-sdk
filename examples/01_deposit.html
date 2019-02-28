@@ -13,11 +13,9 @@
 
 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
 <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
-
 <script>
 
 $(function(){
-
 
 	var s = nacl.randomBytes(32);
 	var k = KeyPair.create(s);
@@ -33,13 +31,14 @@ $(function(){
 		accessNem(
 			"/account/unconfirmedTransactions?address=" + addr
 		).then(function(res){
-			callbackParseUnconfirm(res);
+			console.log("connect!!!!!!!");
+			parseUnconfirm(res);
 		});
 
 	},checkInterval);
 
 	//未承認チェック
-	var callbackParseUnconfirm = function(result){
+	var parseUnconfirm = function(result){
 
 		var dataArray = result.data;
 		dataArray.some(function(val){

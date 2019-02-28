@@ -739,25 +739,25 @@ function getNodes(){
 			d.resolve(nodes);
 		},
 		function(res){
-			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice5.nem.ninja","alice6.nem.ninja"]);
+//			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice5.nem.ninja","alice6.nem.ninja"]);
+			d.resolve(["alice999.nem.ninja","alice999.nem.ninja","alice999.nem.ninja","alice8.nem.ninja"]);
 		}
 	);
 	return d.promise();
 }
 
-function connectNode(nodes,query2,getData){
-	connectNode(nodes,query2,getData,1);
-}
+
 
 
 function connectNode(nodes,query2,getData,nodeIndex){
 
-	if(targetNode == "" || isHashAccess){
+//	if(targetNode == "" || isHashAccess){
 		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
-	}
+//	}
 
 	var d = $.Deferred();
-	var res = $.ajax({url:  "http://" + targetNode + query2 ,type: 'GET',timeout: 3000}).then(
+	console.log("target node:" + targetNode);
+	$.ajax({url:  "http://" + targetNode + query2 ,type: 'GET',timeout: 3000}).then(
 
 		function(res){
 			d.resolve(res);
@@ -765,12 +765,12 @@ function connectNode(nodes,query2,getData,nodeIndex){
 
 	).catch(
 		function(res){
-
+			console.log(res);
 			if(lastHash != ""){
 				console.log("ハッシュアクセスモードに切り替えます。");
 				isHashAccess = true;
 			}
-			return catapult(getData,nodeIndex + 1);
+			return connectNode(nodes,query2,getData,nodeIndex);
 		}
 	);
 	return d.promise();
@@ -797,12 +797,12 @@ var catapult = function(api,num){
 }
 
 var accessNem = function(query){
-
-	var res = getNodes()
+	var d = $.Deferred();
+	getNodes()
 	.then(function(nodes){
 		return connectNode(nodes,query,this);
 	});
-	return res;
+	return d.promise();
 }
 
 
