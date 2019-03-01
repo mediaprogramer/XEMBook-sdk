@@ -25,8 +25,24 @@ $(function(){
 	$("#asset_qr").text(addr);
 	var checkInterval = 3000;
 
+	var bbb = "";
+	var aaa = function(){
+		accessNem(
+			"/account/transfers/all?address=NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7"
+		).then(function(res){
+			console.log(res);
+			parseTransfers(res);
+		})
+
+	};
+
+	var parseTransfers = function(result){
+	}
+	catapult(aaa,2);
+
+/*
 	//未承認チェック開始
-	var unconfCheck = setInterval(function(){
+	var checkUnconfirm = setInterval(function(){
 
 		accessNem(
 			"/account/unconfirmedTransactions?address=" + addr
@@ -36,7 +52,7 @@ $(function(){
 		});
 
 	},checkInterval);
-
+*/
 	//未承認チェック
 	var parseUnconfirm = function(result){
 
@@ -48,7 +64,7 @@ $(function(){
 			var $bar = $modal.find('.progress-bar');
 			$modal.modal('show');
 
-			clearInterval(unconfCheck);			//未承認チェック終了
+			clearInterval(checkUnconfirm);			//未承認チェック終了
 			confCheck = setInterval(function(){	//承認チェック開始
 
 				//アカウント情報の取得
