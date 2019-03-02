@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Snapwallet</title>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
+
+<script src="../xembook-sdk.js"></script>
+<script src="../nacl-fast.js"></script>
+<script src="../xembook-keypair.js"></script>
+
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+<script>
+
+$(function(){
+
+	var s = nacl.randomBytes(32);
+	var k = KeyPair.create(s);
+	var addr = toAddress(k.publicKey.toString(), "104");
+	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":1000000,"msg":""}}';
+	$("#receiverqr").attr("src","http://chart.apis.google.com/chart?chs=180x180&cht=qr&chl=" + bill);
+	$("#asset_qr").text(addr);
+	var checkInterval = 3000;
+
+	var bbb = "";
+	var aaa = function(){
+		accessNem(
+			"/account/transfers/all?address=NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7"
+		).then(function(res){
+			console.log(res);
+			parseTransfers(res);
+		})
+
+	};
+
+	var parseTransfers = function(result){
+	}
+	catapult(aaa,2);
+
+/*
+	//未承認チェック開始
+	var checkUnconfirm = setInterval(function(){
+
+		accessNem(
+			"/account/unconfirmedTransactions?address=" + addr
+		).then(function(res){
+			console.log("connect!!!!!!!");
+			parseUnconfirm(res);
+		});
+
+	},checkInterval);
+*/
+	//未承認チェック
+	var parseUnconfirm = function(result){
+
+		var dataArray = result.data;
+		dataArray.some(function(val){
+
+			progress(count);
+			var $modal = $('.js-loading-bar');
+			var $bar = $modal.find('.progress-bar');
+			$modal.modal('show');
+
+			clearInterval(checkUnconfirm);			//未承認チェック終了
+			confCheck = setInterval(function(){	//承認チェック開始
+
+				//アカウント情報の取得
+				accessNem(
+					"/account/get?address=" + addr
+				).then(function(res){
+					callbackParseTransfers(res);
+				});
+
+			},checkInterval);
+		});
+	};
+
+	var callbackParseTransfers = function(result){
+
+		console.log(result);
+		var balance = result.account.balance;
+		if(balance > 0){
+
+			clearInterval(confCheck);
+			console.log("入金を確認しました。");
+			is_confirmed=true;
+			ticker = 50;
+			incr = 20;
+
+			console.log(toAddress(k.publicKey.toString(), "104"));
+		}
+	};
+
+	var count = 0;
+	var ticker = 600;
+	var is_confirmed = false;
+	var incr = 1;
+
+	//着金確認プログレスバー
+	function progress(count){
+		setTimeout(function(){
+			var $modal = $('.js-loading-bar');
+			count+=incr;
+			if(count >= 90 && is_confirmed == false) {
+				count = 90;
+			}
+
+			if(is_confirmed) {
+
+				//プログレスバー終了
+				$modal.find('.progress-bar').css({'width':'100%'});
+				setTimeout(function() { $modal.modal('hide').delay(800).queue(function(next) {next();});},1600);
+				return;
+			}
+
+			$modal.find('.progress-bar').css({'width':count+'%'});
+			progress(count);
+
+		},normRand(ticker, 50));
+	}
+
+	//ランダム正規分布(m=中央値,s=偏り)
+	var normRand = function (m, s) {
+		var a = 1 - Math.random();
+		var b = 1 - Math.random();
+		var c = Math.sqrt(-2 * Math.log(a));
+		if(0.5 - Math.random() > 0) {
+			return c * Math.sin(Math.PI * 2 * b) * s + m;
+		}else{
+			return c * Math.cos(Math.PI * 2 * b) * s + m;
+		}
+	};
+
+
+});
+
+</script>
+</head>
+<body>
+
+<h1>Snapwallet</h1>
+<br>
+<img id="receiverqr" src="" alt="" width="180" height="180">
+<div id="asset_qr"></div>
+
+<div class="collapse" id="cosigners-ctrl">
+	<table  class="table" id="cosigners">
+		<thead><tr><th>区分</th><th>アドレス</th><th>操作</th></tr></thead>
+		<tbody></tbody>
+	</table>
+</div>
+
+<!-- <button id="load">Load It!</button> -->
+<div class="modal js-loading-bar">
+ <div class="modal-dialog">
+   <div class="modal-content">
+     <div class="modal-body">
+       <div class="progress progress-popup">
+        <div class="progress-bar progress-bar-striped active"></div>
+       </div>
+        <div>トランザクション確認中</div>
+     </div>
+   </div>
+ </div>
+</div>
+
+ <!-- モーダル・ダイアログ -->
+<div class="modal fade" id="modal1" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <h4 class="modal-title" id="modal1_title"></h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal" >
+          <div class="form-group">
+            <label class="col-sm-2 control-label">Addresss</label><div class="col-sm-10"><input type="text" class="form-control" id="modal1_form" ></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal"  id="modal1_confirm">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+ <!-- モーダル・ダイアログ -->
+<div class="modal fade" id="modal2" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <h4 class="modal-title" id="modal2_title">秘密鍵</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal" >
+          <div class="form-group">
+            <label class="col-sm-12 control-label" id="modal2_label">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal"  id="modal1_confirm">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
