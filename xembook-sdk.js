@@ -756,7 +756,7 @@ function connectNode(nodes,query2,getData,nodeIndex){
 	}
 
 	var d = $.Deferred();
-	console.log("target node:" + targetNode);
+	console.log("connectNode:"+  "http://" + targetNode + query2);
 	$.ajax({url:  "http://" + targetNode + query2 ,type: 'GET',timeout: 3000}).then(
 
 		function(res){
@@ -798,71 +798,9 @@ var catapult = function(api,num){
 	);
 }
 
-var accessNem = function(query){
-	var d = $.Deferred();
-	getNodes()
+var getNemInfo = function(query){
+	return getNodes()
 	.then(function(nodes){
 		return connectNode(nodes,query,this);
-	});
-	return d.promise();
-}
-
-
-
-
-
-var MOSAICS = [
-	{"mosaicId":{'name': "xem" ,'namespaceId': "nem"   },"quantity":1,"supply":8999999999,"divisibility":6},
-	{"mosaicId":{'name': "ripe",'namespaceId': "tomato"},"quantity":1,"supply":100000	 ,"divisibility":0}
-];
-
-function sendAjaxRequest(){
-
-	let amount = parseInt(1000000, 10);
-	let message = {payload:utf8ToHex("テスト"),type:1};
-	let due = 60;
-	let mosaics = MOSAICS;
-	let mosaicsFee = calculateMosaics(1, MOSAICS);
-	let timeStamp = Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000));
-
-	var fee = (mosaics ? mosaicsFee : currentFeeFactor * calculateMinimum(amount / 1000000)) * 1000000;
-	if (message.payload.length !== 0) {
-		fee += currentFeeFactor * (Math.floor((message.payload.length / 2) / 32) + 1) * 1000000;
-	}
-
-	let data ={
-		'type': 0x101,
-		'version': getVersion(2,104),
-		'signer': SENDER_PUBLIC_KEY,
-		'timeStamp': timeStamp,
-		'deadline': timeStamp + due * 60
-	};
-
-	let custom = {
-		'recipient': RECIPIENT_ADDRESS,
-		'amount': amount,
-		'fee': fee,
-		'message': message,
-		'mosaics': mosaics
-	};
-
-	let entity = $.extend(data, custom);
-	let result = serializeTransaction(entity);
-	let kp = KeyPair.create(fixPrivateKey(SENDER_PRIVATE_KEY));
-	let signature = kp.sign(result);
-	let obj = {'data':ua2hex(result), 'signature':signature.toString()};
-
-	console.log(entity);
-	console.log(obj);
-	console.log(JSON.stringify(entity));
-
-	return $.ajax({
-		url: URL_TRANSACTION_ANNOUNCE  ,
-		type: 'POST',
-		contentType:'application/json',
-		data: JSON.stringify(obj)  ,
-		error: function(XMLHttpRequest) {
-			console.log( $.parseJSON(XMLHttpRequest.responseText));
-		}
 	});
 }
