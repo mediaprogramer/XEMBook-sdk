@@ -23,7 +23,7 @@ $(function(){
 	$("#receiver_qr").attr("src","http://chart.apis.google.com/chart?chs=180x180&cht=qr&chl=" + bill);
 	$("#account_qr").text(addr);
 	var checkInterval = 3000;
-
+	var checkAccountTransfersAll;
 	var checkAccountUnconfirmedTransactions = setInterval(
 		function(){
 			getNemInfo("/account/unconfirmedTransactions?address="+ addr)
@@ -47,12 +47,12 @@ $(function(){
 			$modal.modal('show');
 
 			clearInterval(checkAccountUnconfirmedTransactions);			//未承認チェック終了
-			checkAccountGet = setInterval(
+			checkAccountTransfersAll = setInterval(
 				function(){
-					getNemInfo("/account/get?address=" + addr)
+					getNemInfo("/account/transfers/all?address=" + addr)
 					.then(
 						function(res){
-							parseAccountGet(res);
+							parseAccountTransfersAll(res);
 						}
 					)
 				},
@@ -61,20 +61,22 @@ $(function(){
 		});
 	};
 
-	var parseAccountGet = function(res){
+	var parseAccountTransfersAll = function(res){
 
-		var balance = res.account.balance;
-		if(balance > 0){
+		var dataArray = res.data;
+		dataArray.some(function(val){
 
-			clearInterval(checkAccountGet);
+			console.log(val);
+			clearInterval(checkAccountTransfersAll);
 			is_confirmed=true;
 			ticker = 50;
 			incr = 20;
-		}
+			console.log(val);
+		});
 	};
 
 	var count = 0;
-	var ticker = 600;
+	var ticker = 700;
 	var is_confirmed = false;
 	var incr = 1;
 
@@ -93,7 +95,7 @@ $(function(){
 				//プログレスバー終了
 				$modal.find('.progress-bar').css({'width':'100%'});
 				setTimeout(function() {
-					$modal.modal('hide').delay(800).queue(
+					$modal.modal('hide').delay(700).queue(
 						function(next) {
 							console.log("入金を確認しました。");
 							alert("入金を確認しました。");

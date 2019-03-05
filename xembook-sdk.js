@@ -739,8 +739,8 @@ function getNodes(){
 			d.resolve(nodes);
 		},
 		function(res){
-			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice5.nem.ninja","alice6.nem.ninja"]);
-//			d.resolve(["alice999.nem.ninja","alice999.nem.ninja","alice999.nem.ninja","alice8.nem.ninja"]);
+//			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice5.nem.ninja","alice6.nem.ninja"]);
+			d.resolve(["alice999.nem.ninja","alice999.nem.ninja","alice999.nem.ninja","alice8.nem.ninja"]);
 		}
 	);
 	return d.promise();
@@ -751,9 +751,9 @@ function getNodes(){
 
 function connectNode(nodes,query2,getData,nodeIndex){
 
-	if(targetNode == "" || isHashAccess){
+//	if(targetNode == "" || isHashAccess){
 		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
-	}
+//	}
 
 	var d = $.Deferred();
 	console.log("connectNode:"+  "http://" + targetNode + query2);
