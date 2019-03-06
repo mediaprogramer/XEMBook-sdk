@@ -767,6 +767,7 @@ function connectNode(nodes,query2,getData,nodeIndex){
 	).catch(
 		function(res){
 			targetNode = "";
+			console.log("catch");
 			console.log(res);
 			if(lastHash != ""){
 				console.log("ハッシュアクセスモードに切り替えます。");
@@ -801,6 +802,7 @@ var catapult = function(api,num){
 var getNemInfo = function(query){
 	return getNodes()
 	.then(function(nodes){
+		console.log("3333");
 		return connectNode(nodes,query,this);
 	});
 }

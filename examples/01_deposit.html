@@ -24,6 +24,8 @@ $(function(){
 	$("#account_qr").text(addr);
 	var checkInterval = 3000;
 	var checkAccountTransfersAll;
+	var lastHeight = 0;
+
 	var checkAccountUnconfirmedTransactions = setInterval(
 		function(){
 			getNemInfo("/account/unconfirmedTransactions?address="+ addr)
@@ -36,6 +38,7 @@ $(function(){
 		checkInterval
 	);
 
+	//未承認トランザクションの解析
 	var parseAccountUnconfirmedTransactions = function(result){
 
 		var dataArray = result.data;
@@ -61,17 +64,37 @@ $(function(){
 		});
 	};
 
+	//直近のトランザクション取得
 	var parseAccountTransfersAll = function(res){
 
 		var dataArray = res.data;
 		dataArray.some(function(val){
 
 			console.log(val);
-			clearInterval(checkAccountTransfersAll);
-			is_confirmed=true;
-			ticker = 50;
-			incr = 20;
-			console.log(val);
+			//新しいトランザクションを確認した場合
+			if(lastHeight < val.meta.height){
+
+				//プログレスバー終了
+				is_confirmed　=　true;
+				ticker = 50;
+				incr = 20;
+				console.log(val);
+				lastHeight = val.meta.height;
+
+				//再び未承認トランザクションの監視
+				clearInterval(checkAccountTransfersAll);
+				checkAccountUnconfirmedTransactions = setInterval(
+					function(){
+						getNemInfo("/account/unconfirmedTransactions?address="+ addr)
+						.then(
+							function(res){
+								parseAccountUnconfirmedTransactions(res);
+							}
+						);
+					},
+					checkInterval
+				);
+			}
 		});
 	};
 
