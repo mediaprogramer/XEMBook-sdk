@@ -78,8 +78,9 @@ $(function(){
 				is_confirmed　=　true;
 				ticker = 50;
 				incr = 20;
-				console.log(val);
+
 				lastHeight = val.meta.height;
+				console.log(lastHeight);
 
 				//再び未承認トランザクションの監視
 				clearInterval(checkAccountTransfersAll);
@@ -120,9 +121,14 @@ $(function(){
 				setTimeout(function() {
 					$modal.modal('hide').delay(700).queue(
 						function(next) {
+							count = 0;
+							ticker = 700;
+							is_confirmed = false;
+							incr = 1;
+
 							console.log("入金を確認しました。");
 							alert("入金を確認しました。");
-
+							$modal.find('.progress-bar').css({'width':'0%'});
 							next();
 						}
 					);
