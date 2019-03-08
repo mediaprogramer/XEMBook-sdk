@@ -739,17 +739,13 @@ function getNodes(){
 			d.resolve(nodes);
 		},
 		function(res){
-//			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice5.nem.ninja","alice6.nem.ninja"]);
-			d.resolve(["alice999.nem.ninja","alice999.nem.ninja","alice999.nem.ninja","alice8.nem.ninja"]);
+			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice8.nem.ninja"]);
 		}
 	);
 	return d.promise();
 }
 
-
-
-
-function connectNode(nodes,query2,getData,nodeIndex){
+function connectNode(nodes,query2,nodeIndex){
 
 //	if(targetNode == "" || isHashAccess){
 		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
@@ -767,13 +763,14 @@ function connectNode(nodes,query2,getData,nodeIndex){
 	).catch(
 		function(res){
 			targetNode = "";
-			console.log("catch");
-			console.log(res);
 			if(lastHash != ""){
 				console.log("ハッシュアクセスモードに切り替えます。");
 				isHashAccess = true;
 			}
-			return connectNode(nodes,query2,getData,nodeIndex);
+			return connectNode(nodes,query2,nodeIndex)
+			.then(function(res){
+				d.resolve(res);
+			});
 		}
 	);
 	return d.promise();
@@ -802,7 +799,6 @@ var catapult = function(api,num){
 var getNemInfo = function(query){
 	return getNodes()
 	.then(function(nodes){
-		console.log("3333");
-		return connectNode(nodes,query,this);
+		return connectNode(nodes,query);
 	});
 }
