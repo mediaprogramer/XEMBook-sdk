@@ -802,3 +802,11 @@ var getNemInfo = function(query){
 		return connectNode(nodes,query);
 	});
 }
+
+var postNemTx = function(query,object){
+
+	return getNodes()
+	.then(function(nodes){
+		return connectNode(nodes,query);
+	});
+}
