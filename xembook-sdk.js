@@ -715,6 +715,17 @@ var calculateMosaics = function calculateMosaics(multiplier, mosaics) {
 	return totalFee;
 };
 
+var getFee = function(amount,message,mosaics){
+
+	let msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
+	let fee = mosaics ? calculateMosaics(amount,mosaics) : calculateXemEquivalent(amount / 1000000);
+	return  (msgFee + fee) * 1000000;
+
+}
+
+var getTimestamp = function(diff){
+	return Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000)) + diff;
+}
 
 var getVersion = function getVersion(val, network) {
 	if (network === 104) {

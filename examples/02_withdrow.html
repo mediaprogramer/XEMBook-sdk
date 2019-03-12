@@ -158,33 +158,24 @@ $(function(){
 		let mosaics = null;
 		let mosaicsFee = null;
 
-		let timeStamp = Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000));
-		let msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
-		let fee = mosaics ? mosaicsFee : calculateXemEquivalent(amount / 1000000);
-		let totalFee = (msgFee + fee) * 1000000;
-
-		let data ={
+		let entity = {
 			'type': 0x101,
 			'version': getVersion(104,1),
 			'signer': k.publicKey.toString(),
-			'timeStamp': timeStamp,
-			'deadline': timeStamp + due * 60
-		};
-
-		let custom = {
-			'recipient': RECIPIENT_ADDRESS,
+			'timeStamp': getTimestamp(0),
+			'deadline' : getTimestamp(due * 60)
+			'recipient': "NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7",
 			'amount': amount,
-			'fee': totalFee,
+			'fee': getFee(amount,message,mosaics),
 			'message': message,
 			'mosaics': mosaics
 		};
 
-		let entity = $.extend(data, custom);
-		let st = serializeTransaction(entity);
+		let tx = serializeTransaction(entity);
 		let kp = KeyPair.create(s);
-		let signature = kp.sign(st);
 
-		postNemInfo("transaction/announce",tx,signature).then(
+
+		postNemInfo("transaction/announce",tx,kp.sign(tx)).then(
 			function(){
 
 				console.log("done!");
