@@ -151,10 +151,22 @@ $(function(){
 
 	var withdrow = function(){
 
+		let amount = parseInt(1 * 1000000, 10);
+	//	var amount = parseInt(1, 10);
+		let message = {payload:"",type:1};
+		let due = 60;
+		let mosaics = null;
+		let mosaicsFee = null;
+
+		let timeStamp = Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000));
+		let msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
+		let fee = mosaics ? mosaicsFee : calculateXemEquivalent(amount / 1000000);
+		let totalFee = (msgFee + fee) * 1000000;
+
 		let data ={
 			'type': 0x101,
-			'version': CURRENT_NETWORK_VERSION(1),
-			'signer': SENDER_PUBLIC_KEY,
+			'version': getVersion(104,1),
+			'signer': k.publicKey.toString(),
 			'timeStamp': timeStamp,
 			'deadline': timeStamp + due * 60
 		};
@@ -171,13 +183,13 @@ $(function(){
 		let st = serializeTransaction(entity);
 		let kp = KeyPair.create(s);
 		let signature = kp.sign(st);
-		let obj = {'data':ua2hex(st), 'signature':signature.toString()};
 
-		postNemTx("transaction/announce",obj).then(
+		postNemInfo("transaction/announce",tx,signature).then(
 			function(){
+
 				console.log("done!");
 			}
-		);		
+		);
 	}
 
 	//ランダム正規分布(m=中央値,s=偏り)
