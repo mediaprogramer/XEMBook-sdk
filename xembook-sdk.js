@@ -756,15 +756,19 @@ function getNodes(){
 	return d.promise();
 }
 
-function connectNode(nodes,query2,nodeIndex){
+function connectNode(nodes,query2,nodeIndex,method){
 
 //	if(targetNode == "" || isHashAccess){
 		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
 //	}
+	connMethod = "GET";
+	if(method){
+		connMethod = method;
+	}
 
 	var d = $.Deferred();
 	console.log("connectNode:"+  "http://" + targetNode + query2);
-	$.ajax({url:  "http://" + targetNode + query2 ,type: 'GET',timeout: 3000}).then(
+	$.ajax({url:  "http://" + targetNode + query2 ,type: connMethod,timeout: 3000}).then(
 
 		function(res){
 			console.log(res);
@@ -786,6 +790,45 @@ function connectNode(nodes,query2,nodeIndex){
 	);
 	return d.promise();
 }
+
+function connectNodeToPost(nodes,query,txString){
+
+	targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
+
+	var d = $.Deferred();
+	console.log("connectNode:"+  "http://" + targetNode + query);
+	$.ajax({
+		url: query  ,
+		type: 'POST',
+		contentType:'application/json',
+		data: txString  ,
+		error: function(XMLHttpRequest) {
+			console.log( $.parseJSON(XMLHttpRequest.responseText));
+		}
+	}).then(
+
+		function(res){
+			console.log(res);
+			d.resolve(res);
+		}
+
+	).catch(
+		function(res){
+			targetNode = "";
+			if(lastHash != ""){
+				console.log("ハッシュアクセスモードに切り替えます。");
+				isHashAccess = true;
+			}
+			return connectNodeToPost(nodes,query,txObject)
+			.then(function(res){
+				d.resolve(res);
+			});
+		}
+	);
+	return d.promise();
+}
+
+
 
 var catapult = function(api,num){
 	var nodeIndex = num;
@@ -814,10 +857,11 @@ var getNemInfo = function(query){
 	});
 }
 
-var postNemTx = function(query,object){
+var postNemSignedInfo = function(query,tx,signature){
 
+	let txString = JSON.stringify({'data':ua2hex(tx), 'signature':signature.toString()});
 	return getNodes()
 	.then(function(nodes){
-		return connectNode(nodes,query);
+		return connectNodeToPost(nodes,query,txString);
 	});
 }
