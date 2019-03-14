@@ -151,36 +151,43 @@ $(function(){
 
 	var withdrow = function(){
 
-		let amount = parseInt(1 * 1000000, 10);
-	//	var amount = parseInt(1, 10);
-		let message = {payload:"",type:1};
-		let due = 60;
-		let mosaics = null;
-		let mosaicsFee = null;
+		getNemInfo("/time-sync/network-time").then(
+			function(res){
 
-		let entity = {
-			'type': 0x101,
-			'version': getVersion(104,1),
-			'signer': k.publicKey.toString(),
-			'timeStamp': getTimestamp(0),
-			'deadline' : getTimestamp(due * 60)
-			'recipient': "NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7",
-			'amount': amount,
-			'fee': getFee(amount,message,mosaics),
-			'message': message,
-			'mosaics': mosaics
-		};
+				let amount = parseInt(1 * 1000000, 10);
+			//	var amount = parseInt(1, 10);
+				let message = {payload:"",type:1};
+				let due = 60;
+				let mosaics = null;
+				let mosaicsFee = null;
 
-		let tx = serializeTransaction(entity);
-		let kp = KeyPair.create(s);
+				let entity = {
+					'type': 0x101,
+					'version': getVersion(104,1),
+					'signer': k.publicKey.toString(),
+					'timeStamp': res.sendTimeStamp,
+					'deadline' : res.sendTimeStamp + (due * 60)
+					'recipient': "NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7",
+					'amount': amount,
+					'fee': getFee(amount,message,mosaics),
+					'message': message,
+					'mosaics': mosaics
+				};
+
+				let tx = serializeTransaction(entity);
+				let kp = KeyPair.create(s);
 
 
-		postNemInfo("transaction/announce",tx,kp.sign(tx)).then(
-			function(){
+				postNemSignedInfo("transaction/announce",tx,kp.sign(tx)).then(
+					function(){
 
-				console.log("done!");
+						console.log("done!");
+					}
+				);
 			}
-		);
+		)
+
+
 	}
 
 	//ランダム正規分布(m=中央値,s=偏り)
