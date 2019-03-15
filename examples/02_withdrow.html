@@ -201,6 +201,19 @@ $(function(){
 			return c * Math.cos(Math.PI * 2 * b) * s + m;
 		}
 	};
+
+
+	function actionWithdrow(){
+		var result = confirm("出金します。よろしいですか？");
+		if(result){
+			withdrow().done(
+			function(data){
+				console.log(data);
+			});
+		}
+	}
+
+	$("#btnXEM").click(function(){actionWithdrow();return false;});
 });
 
 </script>
@@ -211,6 +224,7 @@ $(function(){
 <br>
 <img id="receiverqr" src="" alt="" width="180" height="180">
 <div id="asset_qr"></div>
+<button id="btnWithdrow">出金</button>
 
 <div class="collapse" id="cosigners-ctrl">
 	<table  class="table" id="cosigners">
