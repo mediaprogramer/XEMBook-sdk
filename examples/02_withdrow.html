@@ -154,19 +154,21 @@ $(function(){
 		getNemInfo("/time-sync/network-time").then(
 			function(res){
 
-				let amount = parseInt(1 * 1000000, 10);
+//				let amount = parseInt(1 * 1000000, 10);
+				let amount = parseInt(1 * 10000, 10);
 			//	var amount = parseInt(1, 10);
 				let message = {payload:"",type:1};
 				let due = 60;
 				let mosaics = null;
 				let mosaicsFee = null;
+				let timeStamp = Math.floor(res.sendTimeStamp/1000);
 
 				let entity = {
 					'type': 0x101,
 					'version': getVersion(104,1),
 					'signer': k.publicKey.toString(),
-					'timeStamp': res.sendTimeStamp,
-					'deadline' : res.sendTimeStamp + (due * 60)
+					'timeStamp': timeStamp,
+					'deadline' : timeStamp + (due * 60),
 					'recipient': "NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7",
 					'amount': amount,
 					'fee': getFee(amount,message,mosaics),
@@ -177,8 +179,8 @@ $(function(){
 				let tx = serializeTransaction(entity);
 				let kp = KeyPair.create(s);
 
-
-				postNemSignedInfo("transaction/announce",tx,kp.sign(tx)).then(
+				console.log(entity);
+				postNemSignedInfo("/transaction/announce",tx,kp.sign(tx)).then(
 					function(){
 
 						console.log("done!");
@@ -222,8 +224,8 @@ $(function(){
 
 <h1>Snapwallet</h1>
 <br>
-<img id="receiverqr" src="" alt="" width="180" height="180">
-<div id="asset_qr"></div>
+<img id="receiver_qr" src="" alt="" width="180" height="180">
+<div id="account_qr"></div>
 <button id="btnWithdrow">出金</button>
 
 <div class="collapse" id="cosigners-ctrl">

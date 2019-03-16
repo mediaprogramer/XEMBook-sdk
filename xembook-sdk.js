@@ -499,6 +499,7 @@ let serializeTransaction = function(entity) {
 		}
 
 		var entityVersion = d[1] & 0xffffff;
+		console.log(entityVersion);
 		if (entityVersion >= 2) {
 			var temp = _serializeMosaics(entity['mosaics']);
 			for (var j = 0; j < temp.length; ++j) {
@@ -718,7 +719,13 @@ var calculateMosaics = function calculateMosaics(multiplier, mosaics) {
 var getFee = function(amount,message,mosaics){
 
 	let msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
-	let fee = mosaics ? calculateMosaics(amount,mosaics) : calculateXemEquivalent(amount / 1000000);
+	console.log("================");
+
+	console.log(msgFee);
+	let fee = mosaics ? calculateMosaics(amount,mosaics) : calculateMinimum(amount / 1000000) * currentFeeFactor;
+	console.log(calculateMinimum(amount / 1000000));
+
+	console.log(fee);
 	return  (msgFee + fee) * 1000000;
 
 }
@@ -727,7 +734,7 @@ var getTimestamp = function(diff){
 	return Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000)) + diff;
 }
 
-var getVersion = function getVersion(val, network) {
+var getVersion = function getVersion( network,val) {
 	if (network === 104) {
 		return 0x68000000 | val;
 	} else if (network === -104) {
@@ -798,7 +805,7 @@ function connectNodeToPost(nodes,query,txString){
 	var d = $.Deferred();
 	console.log("connectNode:"+  "http://" + targetNode + query);
 	$.ajax({
-		url: query  ,
+		url: "http://" + targetNode + query  ,
 		type: 'POST',
 		contentType:'application/json',
 		data: txString  ,
