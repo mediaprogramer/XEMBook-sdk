@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>Snapwallet</title>
+<title>出金テスト</title>
 
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
@@ -132,11 +132,10 @@ $(function(){
 							is_confirmed = false;
 							incr = 1;
 
-							console.log("入金を確認しました。");
-							alert("入金を確認しました。");
+							console.log("トランザクションが承認されました");
+							alert("トランザクションが承認されました");
 							$modal.find('.progress-bar').css({'width':'0%'});
 							next();
-							withdrow();
 						}
 					);
 				},1600);
@@ -222,7 +221,7 @@ $(function(){
 </head>
 <body>
 
-<h1>Snapwallet</h1>
+<h1>出金テスト</h1>
 <br>
 <img id="receiver_qr" src="" alt="" width="180" height="180">
 <div id="account_qr"></div>
@@ -247,52 +246,6 @@ $(function(){
      </div>
    </div>
  </div>
-</div>
-
- <!-- モーダル・ダイアログ -->
-<div class="modal fade" id="modal1" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <h4 class="modal-title" id="modal1_title"></h4>
-      </div>
-      <div class="modal-body">
-        <form class="form-horizontal" >
-          <div class="form-group">
-            <label class="col-sm-2 control-label">Addresss</label><div class="col-sm-10"><input type="text" class="form-control" id="modal1_form" ></div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
-        <button type="button" class="btn btn-primary" data-dismiss="modal"  id="modal1_confirm">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
-
- <!-- モーダル・ダイアログ -->
-<div class="modal fade" id="modal2" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <h4 class="modal-title" id="modal2_title">秘密鍵</h4>
-      </div>
-      <div class="modal-body">
-        <form class="form-horizontal" >
-          <div class="form-group">
-            <label class="col-sm-12 control-label" id="modal2_label">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</label>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
-        <button type="button" class="btn btn-primary" data-dismiss="modal"  id="modal1_confirm">OK</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 </body>
