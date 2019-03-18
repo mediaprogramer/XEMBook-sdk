@@ -2,104 +2,278 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>Snapwallet</title>
+<title>テスト</title>
 
-<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
 
-<script src="../xembook-sdk.js"></script>
-<script src="../nacl-fast.js"></script>
-<script src="../xembook-keypair.js"></script>
+<script src="xembook-sdk.js"></script>
+<script src="nacl-fast.js"></script>
+<script src="keyPair.js"></script>
 
 <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
 <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+
 <script>
+
+
+//送金API URL
+var URL_TRANSACTION_ANNOUNCE = "http://beny.supernode.me:7890/transaction/announce";
+
+
 
 $(function(){
 
+
+	$('#btnAddSigner').on('click', function (event) {
+
+		$('#modal1').modal();
+		$('#modal1_title').text("追加する署名者アドレスを入力してください");
+
+	});
+
+	$(document).on("click","#show_privatekey", function() {
+
+		$('#modal2').modal();
+		$('#modal2_label').text($(this).data('num'));
+		return false;
+	});
+
+	//非表示時にはお掃除
+	$('#modal2').on('hidden.bs.modal', function () {
+		$('#modal2_label').text("XXXXXXXXXXXXXXXXXXXXX");
+	})
+	
+	$("#modal1_confirm").on("click",function(event){
+
+		var addr4 = $("#modal1_form").val().replace( /-/g , "" ).toUpperCase();
+
+		$.ajax({url: "http://beny.supernode.me:7890/account/get?address=" + addr4 ,type: 'GET'}
+		).done(
+			function(res){
+				console.log(res);
+				console.log(res.account);
+				console.log(res.account.publicKey);
+
+				let timeStamp = Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000));
+				let due = 60;
+
+				let data ={
+					'type': multisigModification,
+					'version': getVersion(2,104),
+					'signer': k.publicKey.toString(),
+					'timeStamp': timeStamp,
+					'deadline' : timeStamp + due * 60
+				};
+
+				let custom = {
+					'fee': 500000,
+					"modifications": [
+						{"modificationType": 1,"cosignatoryAccount": res.account.publicKey,"cosignatoryAddress": addr4},
+					],
+					"minCosignatories" : {"relativeChange": 1}
+				};
+
+				let entity = $.extend(data, custom);
+				let result = serializeTransaction(entity);
+				let signature = k.sign(result);
+				let obj = {'data':ua2hex(result), 'signature':signature.toString()};
+
+				console.log(entity);
+				console.log(obj);
+				console.log(JSON.stringify(entity));
+
+				$.ajax({
+					url: "http://beny.supernode.me:7890/transaction/announce"  ,
+					type: 'POST',
+					contentType:'application/json',
+					data: JSON.stringify(obj)  ,
+					error: function(XMLHttpRequest) {
+						console.log( $.parseJSON(XMLHttpRequest.responseText));
+					}
+				}).done(
+				function(data){
+					console.log(data);
+				});
+
+				
+			}
+		);
+
+	});
+
+	var sk = Array();
+	sk[0] = nacl.randomBytes(32);
+	
 	var s = nacl.randomBytes(32);
 	var k = KeyPair.create(s);
 	var addr = toAddress(k.publicKey.toString(), "104");
+
 	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":1000000,"msg":""}}';
 	$("#receiverqr").attr("src","http://chart.apis.google.com/chart?chs=180x180&cht=qr&chl=" + bill);
 	$("#asset_qr").text(addr);
-	var checkInterval = 3000;
 
-	var bbb = "";
-	var aaa = function(){
-		accessNem(
-			"/account/transfers/all?address=NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7"
-		).then(function(res){
-			console.log(res);
-			parseTransfers(res);
-		})
-
-	};
-
-	var parseTransfers = function(result){
-	}
-	catapult(aaa,2);
-
-/*
 	//未承認チェック開始
-	var checkUnconfirm = setInterval(function(){
+	var unconf_check = setInterval(function polling(){
 
-		accessNem(
-			"/account/unconfirmedTransactions?address=" + addr
-		).then(function(res){
-			console.log("connect!!!!!!!");
-			parseUnconfirm(res);
-		});
+		console.log("start!");
+		$.ajax({url: "http://beny.supernode.me:7890/account/unconfirmedTransactions?address=" + addr ,type: 'GET'}
+		).done(
+			function(res){parse_unconfirm(res)}
+		);
+		return polling;
 
-	},checkInterval);
-*/
+	}(),3000);
+
+
 	//未承認チェック
-	var parseUnconfirm = function(result){
+	var parse_unconfirm = function(result){
 
 		var dataArray = result.data;
 		dataArray.some(function(val){
 
-			progress(count);
+			//未承認チェック終了
+			clearInterval(unconf_check);
+
+			var tran = val.transaction;
+
 			var $modal = $('.js-loading-bar');
 			var $bar = $modal.find('.progress-bar');
+
+			progress(count);
 			$modal.modal('show');
 
-			clearInterval(checkUnconfirm);			//未承認チェック終了
-			confCheck = setInterval(function(){	//承認チェック開始
+			//承認チェック開始
+			conf_check = setInterval(function(){
 
-				//アカウント情報の取得
-				accessNem(
-					"/account/get?address=" + addr
-				).then(function(res){
-					callbackParseTransfers(res);
-				});
+				console.log("start:conf_check");
+				$.ajax({url: "http://beny.supernode.me:7890/account/get?address=" + addr ,type: 'GET'}
+				).done(
+					function(res){parse_transfers(res)}
+				);
 
-			},checkInterval);
+			},3000);
 		});
 	};
 
-	var callbackParseTransfers = function(result){
+
+	var parse_transfers = function(result){
 
 		console.log(result);
 		var balance = result.account.balance;
 		if(balance > 0){
 
-			clearInterval(confCheck);
-			console.log("入金を確認しました。");
+			clearInterval(conf_check);
+
 			is_confirmed=true;
 			ticker = 50;
 			incr = 20;
 
 			console.log(toAddress(k.publicKey.toString(), "104"));
+
+			var s1 = nacl.randomBytes(32);
+			var k1 = KeyPair.create(s1);
+			console.log(toAddress(k1.publicKey.toString(), "104"));
+
+			var s2 = nacl.randomBytes(32);
+			var k2 = KeyPair.create(s2);
+			console.log(toAddress(k2.publicKey.toString(), "104"));
+
+			var s3 = nacl.randomBytes(32);
+			var k3 = KeyPair.create(s3);
+			console.log(toAddress(k3.publicKey.toString(), "104"));
+
+			$( "#cosigners tbody" ).append( "<tr>" +
+				"<td>所有者</td>" +
+				"<td>" + toAddress(k1.publicKey.toString(), "104") + "</td>" +
+				"<td>本人用(<a href='#' id='show_privatekey' data-num='1'>秘密鍵</a>)</a></td>" +
+			"</tr>" );
+			$( "#cosigners tbody" ).append( "<tr>" +
+				"<td>所有者</td>" +
+				"<td>" + toAddress(k2.publicKey.toString(), "104") + "</td>" +
+				"<td>緊急時用(秘密鍵)</td>" +
+			"</tr>" );
+			$( "#cosigners tbody" ).append( "<tr>" +
+				"<td>所有者</td>" +
+				"<td>" + toAddress(k3.publicKey.toString(), "104") + "</td>" +
+				"<td><button id='btnReset'>譲渡</button></td>" +
+			"</tr>" );
+			$('#cosigners-ctrl').collapse('show');
+
+			let timeStamp = Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000));
+			let due = 60;
+	
+			let data ={
+				'type': multisigModification,
+				'version': getVersion(2,104),
+				'signer': k.publicKey.toString(),
+				'timeStamp': timeStamp,
+				'deadline': timeStamp + due * 60
+			};
+
+			let custom = {
+				'fee': 500000,
+				"modifications": [
+					{"modificationType": 1,"cosignatoryAccount": k1.publicKey.toString(),"cosignatoryAddress": toAddress(k1.publicKey.toString(), "104")},
+					{"modificationType": 1,"cosignatoryAccount": k2.publicKey.toString(),"cosignatoryAddress": toAddress(k2.publicKey.toString(), "104")},
+					{"modificationType": 1,"cosignatoryAccount": k3.publicKey.toString(),"cosignatoryAddress": toAddress(k3.publicKey.toString(), "104")}
+				],
+				"minCosignatories" : {"relativeChange": 2}
+			};
+
+			let entity = $.extend(data, custom);
+			let result = serializeTransaction(entity);
+			let signature = k.sign(result);
+			let obj = {'data':ua2hex(result), 'signature':signature.toString()};
+
+			console.log(entity);
+			console.log(obj);
+			console.log(JSON.stringify(entity));
+
+			$.ajax({
+				url: "http://beny.supernode.me:7890/transaction/announce"  ,
+				type: 'POST',
+				contentType:'application/json',
+				data: JSON.stringify(obj)  ,
+				error: function(XMLHttpRequest) {
+					console.log( $.parseJSON(XMLHttpRequest.responseText));
+				}
+			}).done(
+			function(data){
+				console.log(data);
+			});
 		}
 	};
 
+
+
+
+	console.log(s);
+	console.log(k);
+	console.log(addr);
+	$( "#cosigners tbody" ).append( "<tr>" +
+		"<td>マルチシグ</td>" +
+		"<td>" +addr + "</td>" +
+		"<td>(開発中)</td>" +
+	"</tr>" );
+
+	function sendTransferRequest(){
+
+		var result = confirm("送金します。本当によろしいですか？");
+		if(result){
+			sendAjaxRequest().done(
+			function(data){
+				console.log(data);
+			});
+		}
+	}
+	$("#btnReset").click(function(){sendTransferRequest();return false;});
+	
 	var count = 0;
 	var ticker = 600;
 	var is_confirmed = false;
 	var incr = 1;
 
-	//着金確認プログレスバー
 	function progress(count){
 		setTimeout(function(){
 			var $modal = $('.js-loading-bar');
@@ -133,15 +307,16 @@ $(function(){
 			return c * Math.cos(Math.PI * 2 * b) * s + m;
 		}
 	};
-
-
+	
+	
 });
 
 </script>
 </head>
 <body>
 
-<h1>Snapwallet</h1>
+<h1>マルチシグジェネレータ</h1>
+<!-- <button id="btnReset">submit</button> -->
 <br>
 <img id="receiverqr" src="" alt="" width="180" height="180">
 <div id="asset_qr"></div>
@@ -151,6 +326,7 @@ $(function(){
 		<thead><tr><th>区分</th><th>アドレス</th><th>操作</th></tr></thead>
 		<tbody></tbody>
 	</table>
+<button id="btnAddSigner">署名者の追加</button>
 </div>
 
 <!-- <button id="load">Load It!</button> -->
