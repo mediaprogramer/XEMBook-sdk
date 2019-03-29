@@ -9,15 +9,15 @@ let KeyPair = function(ua) {
 
 	pk =  ("0000000000000000000000000000000000000000000000000000000000000000" + pk.replace(/^00/, '')).slice(-64);
 	this.secretKey = new Uint8Array(pk.length / 2);
-	delete pk;
-
+	
 	for (let i = 0; i < pk.length; i += 2) {
 		this.secretKey[this.secretKey.length - 1 - (i / 2)] = parseInt(pk.substr(i, 2), 16);
 	}
-	
+	delete pk;
+
 	this.publicKey = new BinaryKey(new Uint8Array(nacl.lowlevel.crypto_sign_PUBLICKEYBYTES));
 	nacl.lowlevel.crypto_sign_keypair_hash(this.publicKey.data, this.secretKey, hashfunc);
-	
+
 	this.sign = function(data) {
 		let sig = new Uint8Array(64);
 		let hasher = new hashobj();
