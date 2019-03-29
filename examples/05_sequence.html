@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>マルチシグテスト</title>
+<title>マルチコネクトサンプル</title>
 
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
@@ -16,269 +16,34 @@
 <script>
 $(function(){
 
-	var s = nacl.randomBytes(32);
-	var k = KeyPair.create(s);
-	var addr = toAddress(k.publicKey.toString(), "104");
-	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":1000000,"msg":""}}';
-	$("#receiver_qr").attr("src","http://chart.apis.google.com/chart?chs=180x180&cht=qr&chl=" + bill);
-	$("#account_qr").text(addr);
-	var checkInterval = 3000;
-	var checkAccountTransfersAll;
-	var checkAccountUnconfirmedTransactions;
-	var lastHeight = 0;
-
 	var lastId = "";
 	var lastHash = "";
 
+	var getNemTransferInfo = function(){
 
-		var getNemTransferData = function(nodeIndex){
-
-			var res = getNodes()
-				.then(function(nodes){
-
-					account_transfers_all_query = "/account/transfers/all?address=NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7";
-
-					if(isHashAccess){
-
-						if(lastHash != ""){
-							account_transfers_all_query += "&hash=" + lastHash;
-						}
-
-					}else{
-
-						if(lastId != ""){
-							account_transfers_all_query += "&id=" + lastId;
-						}
-					}
-
-					return connectNode(nodes,account_transfers_all_query,nodeIndex);
-
-				}).then(function(res){
-					lastId = res.data[res.data.length - 1].meta.id;
-					lastHash = res.data[res.data.length - 1].meta.hash.data;
-					//parse_transfers(res);
-				});
-			return res;
+		var query = "/account/transfers/all?address=NBZNQL2JDWTGUAW237PXV4SSXSPORY43GUSWGSB7";
+		if(isHashAccess){
+			if(lastHash != ""){query += "&hash=" + lastHash;}
+		}else{
+			if(lastId   != ""){query += "&id=" + lastId;}
 		}
-	sequence(getNemTransferData,2);
 
-	getNemInfo("/account/transfers/all?address=" + addr)
-	.then(function(res){
-		lastHeight = getLastHeight(res);
-		checkAccountUnconfirmedTransactions = setInterval(function(){
-			getNemInfo("/account/unconfirmedTransactions?address="+ addr)
-			.then(function(res){
-				parseAccountUnconfirmedTransactions(res);
-			});
-		}
-		,checkInterval
-		);
-	});
-
-	var getLastHeight = function(res){
-		console.log("get last height");
-		if(res.data.length > 0){
+		return getNemInfo(query)
+		.then(function(res){
 			var dataArray = res.data;
-			dataArray[0].meta.height
-		}else{
-			return 0;
-		}
-	}
+			lastId = res.data[res.data.length - 1].meta.id;
+			lastHash = res.data[res.data.length - 1].meta.hash.data;
+			dataArray.some(function(val){
 
-	//未承認トランザクションの解析
-	var parseAccountUnconfirmedTransactions = function(res){
-
-		var dataArray = res.data;
-		dataArray.some(function(val){
-
-			progress(count);
-			var $modal = $('.js-loading-bar');
-			var $bar = $modal.find('.progress-bar');
-			$modal.modal('show');
-
-			clearInterval(checkAccountUnconfirmedTransactions);			//未承認チェック終了
-			checkAccountTransfersAll = setInterval(function(){
-				getNemInfo("/account/transfers/all?address=" + addr)
-				.then(function(res){
-					parseAccountTransfersAll(res);
-				})
-			}
-			,checkInterval
-			);
+				$( "#transactions tbody" ).append( "<tr>" +
+					"<td>"+  val.transaction.timeStamp  +"</td>" +
+					"<td>" + val.transaction.recipient + "</td>" +
+					"<td>"+ val.transaction.amount + "</td>" +
+				"</tr>" );
+			});
 		});
-	};
-
-	//直近のトランザクション取得
-	var parseAccountTransfersAll = function(res){
-
-		var dataArray = res.data;
-		if(res.data.length > 0){
-			var val = res.data[0];
-
-			if(lastHeight < val.meta.height){
-
-				//プログレスバー終了
-				is_confirmed　=　true;
-				ticker = 50;
-				incr = 20;
-
-				lastHeight = val.meta.height;
-				console.log(lastHeight);
-
-				//再び未承認トランザクションの監視
-				clearInterval(checkAccountTransfersAll);
-				checkAccountUnconfirmedTransactions = setInterval(function(){
-					getNemInfo("/account/unconfirmedTransactions?address="+ addr)
-					.then(function(res){
-						parseAccountUnconfirmedTransactions(res);
-					});
-				},
-				checkInterval
-				);
-			}
-		}
-	};
-
-	var count = 0;
-	var ticker = 700;
-	var is_confirmed = false;
-	var incr = 1;
-
-	//着金確認プログレスバー
-	function progress(count){
-		setTimeout(function(){
-			var $modal = $('.js-loading-bar');
-			count+=incr;
-			if(count >= 90 && is_confirmed == false) {
-				count = 90;
-			}
-
-			if(is_confirmed) {
-
-				console.log("complete!");
-				//プログレスバー終了
-				$modal.find('.progress-bar').css({'width':'100%'});
-				setTimeout(function() {
-					$modal.modal('hide').delay(700).queue(
-						function(next) {
-							count = 0;
-							ticker = 700;
-							is_confirmed = false;
-							incr = 1;
-
-							console.log("トランザクションが承認されました");
-							alert("トランザクションが承認されました。マルチシグを組成します。");
-							multisig();
-							$modal.find('.progress-bar').css({'width':'0%'});
-							next();
-						}
-					);
-				},1600);
-				return;
-			}
-
-			$modal.find('.progress-bar').css({'width':count+'%'});
-			progress(count);
-
-		},normRand(ticker, 50));
 	}
-
-	var multisig = function(){
-
-		getNemInfo("/time-sync/network-time").then(
-			function(res){
-
-				console.log(toAddress(k.publicKey.toString(), "104"));
-
-				var s1 = nacl.randomBytes(32);
-				var s2 = nacl.randomBytes(32);
-				var s3 = nacl.randomBytes(32);
-				var k1 = KeyPair.create(s1);
-				var k2 = KeyPair.create(s2);
-				var k3 = KeyPair.create(s3);
-
-				console.log(toAddress(k1.publicKey.toString(), "104"));
-				console.log(toAddress(k2.publicKey.toString(), "104"));
-				console.log(toAddress(k3.publicKey.toString(), "104"));
-
-
-				$( "#cosigners tbody" ).append( "<tr>" +
-					"<td>資産</td>" +
-					"<td>" + toAddress(k.publicKey.toString(), "104") + "</td>" +
-					"<td>"+ tempGetPrivateKey(s) + "</td>" +
-				"</tr>" );
-
-				$( "#cosigners tbody" ).append( "<tr>" +
-					"<td>所有者</td>" +
-					"<td>" + toAddress(k1.publicKey.toString(), "104") + "</td>" +
-					"<td>"+ tempGetPrivateKey(s1) + "</td>" +
-				"</tr>" );
-				$( "#cosigners tbody" ).append( "<tr>" +
-					"<td>所有者</td>" +
-					"<td>" + toAddress(k2.publicKey.toString(), "104") + "</td>" +
-					"<td>"+ tempGetPrivateKey(s2) + "</td>" +
-				"</tr>" );
-				$( "#cosigners tbody" ).append( "<tr>" +
-					"<td>所有者</td>" +
-					"<td>" + toAddress(k3.publicKey.toString(), "104") + "</td>" +
-					"<td>"+ tempGetPrivateKey(s3) + "</td>" +
-				"</tr>" );
-				$('#cosigners-ctrl').collapse('show');
-
-				let due = 60;
-				let timeStamp = Math.floor(res.sendTimeStamp/1000);
-
-				let entity = {
-					'type': multisigModification,
-					'version': getVersion(104,2),
-					'signer': k.publicKey.toString(),
-					'timeStamp': timeStamp,
-					'deadline' : timeStamp + (due * 60),
-					'fee': 500000,
-					"modifications": [
-						{"modificationType": 1,"cosignatoryAccount": k1.publicKey.toString(),"cosignatoryAddress": toAddress(k1.publicKey.toString(), "104")},
-						{"modificationType": 1,"cosignatoryAccount": k2.publicKey.toString(),"cosignatoryAddress": toAddress(k2.publicKey.toString(), "104")},
-						{"modificationType": 1,"cosignatoryAccount": k3.publicKey.toString(),"cosignatoryAddress": toAddress(k3.publicKey.toString(), "104")}
-					],
-					"minCosignatories" : {"relativeChange": 2}
-				};
-
-				let tx = serializeTransaction(entity);
-				let kp = KeyPair.create(s);
-
-				console.log(entity);
-				postNemSignedInfo("/transaction/announce",tx,kp.sign(tx)).then(
-					function(){
-
-						console.log("done!");
-					}
-				);
-			}
-		)
-	}
-	var tempGetPrivateKey = function(ua){
-		let pk = '';
-		for (let i = 0; i < ua.length; i++) {
-			let code = ua[i];
-			pk += HEX[code >>> 4];
-			pk += HEX[code & 0x0F];
-		}
-
-		return pk;
-	}
-
-	//ランダム正規分布(m=中央値,s=偏り)
-	var normRand = function (m, s) {
-		var a = 1 - Math.random();
-		var b = 1 - Math.random();
-		var c = Math.sqrt(-2 * Math.log(a));
-		if(0.5 - Math.random() > 0) {
-			return c * Math.sin(Math.PI * 2 * b) * s + m;
-		}else{
-			return c * Math.cos(Math.PI * 2 * b) * s + m;
-		}
-	};
-
+	multiConnect(getNemTransferInfo,2);
 
 //////////////////////////////////////////////////////////////
 
@@ -288,36 +53,16 @@ $(function(){
 </head>
 <body>
 
-<h1>マルチシグジェネレータ</h1>
+<h1>マルチコネクト</h1>
 <!-- <button id="btnReset">submit</button> -->
 <br>
-<img id="receiver_qr" src="" alt="" width="180" height="180">
-<div id="asset_qr"></div>
 
-
-<div class="collapse" id="cosigners-ctrl">
-	<table  class="table" id="cosigners">
-		<thead><tr><th>区分</th><th>アドレス</th><th>秘密鍵</th></tr></thead>
+<div id="transactions-ctrl">
+	<table  class="table" id="transactions">
+		<thead><tr><th>タイムスタンプ</th><th>受信アカウント</th><th>金額(microXEM)</th></tr></thead>
 		<tbody></tbody>
 	</table>
 </div>
-
-<!-- <button id="load">Load It!</button> -->
-<div class="modal js-loading-bar">
- <div class="modal-dialog">
-   <div class="modal-content">
-     <div class="modal-body">
-       <div class="progress progress-popup">
-        <div class="progress-bar progress-bar-striped active"></div>
-       </div>
-        <div>トランザクション確認中</div>
-     </div>
-   </div>
- </div>
-</div>
-
-
-
 
 </body>
 </html>

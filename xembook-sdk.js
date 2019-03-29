@@ -758,24 +758,21 @@ function getNodes(){
 		},
 		function(res){
 			d.resolve(["alice2.nem.ninja","alice3.nem.ninja","alice4.nem.ninja","alice8.nem.ninja"]);
+//			d.resolve(["alice2.nem.ninja","alice99.nem.ninja"]);
 		}
 	);
 	return d.promise();
 }
 
-function connectNode(nodes,query2,nodeIndex,method){
+function connectNode(nodes,query){
 
-//	if(targetNode == "" || isHashAccess){
+	if(targetNode == "" || isHashAccess){
 		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
-//	}
-	connMethod = "GET";
-	if(method){
-		connMethod = method;
 	}
 
 	var d = $.Deferred();
-	console.log("connectNode:"+  "http://" + targetNode + query2);
-	$.ajax({url:  "http://" + targetNode + query2 ,type: connMethod,timeout: 3000}).then(
+	console.log("connectNode:"+  "http://" + targetNode + query);
+	$.ajax({url:  "http://" + targetNode + query ,type: "GET",timeout: 3000}).then(
 
 		function(res){
 			console.log(res);
@@ -784,12 +781,13 @@ function connectNode(nodes,query2,nodeIndex,method){
 
 	).catch(
 		function(res){
+			console.log("catch!");
 			targetNode = "";
 			if(lastHash != ""){
 				console.log("ハッシュアクセスモードに切り替えます。");
 				isHashAccess = true;
 			}
-			return connectNode(nodes,query2,nodeIndex)
+			return connectNode(nodes,query,nodeIndex)
 			.then(function(res){
 				d.resolve(res);
 			});
@@ -800,7 +798,9 @@ function connectNode(nodes,query2,nodeIndex,method){
 
 function connectNodeToPost(nodes,query,txString){
 
-	targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
+	if(targetNode == "" || isHashAccess){
+		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
+	}
 
 	var d = $.Deferred();
 	console.log("connectNode:"+  "http://" + targetNode + query);
@@ -821,6 +821,7 @@ function connectNodeToPost(nodes,query,txString){
 
 	).catch(
 		function(res){
+			console.log("catch!");
 			targetNode = "";
 			if(lastHash != ""){
 				console.log("ハッシュアクセスモードに切り替えます。");
@@ -837,15 +838,15 @@ function connectNodeToPost(nodes,query,txString){
 
 
 
-var catapult = function(api,num){
+var multiConnect = function(api,num){
 	var nodeIndex = num;
 
 	Array.apply(1, {length: num}).reduce(
 		function(promise){
 			return promise.then(
 				function(param){
-					nodeIndex--;
-					return api(nodeIndex);
+//					nodeIndex--;
+					return api();
 				}
 			);
 		},
