@@ -26,6 +26,7 @@ $(function(){
 	var checkAccountTransfersAll;
 	var checkAccountUnconfirmedTransactions;
 	var lastHeight = 0;
+	var isMultisig = false;
 
 	getNemInfo("/account/transfers/all?address=" + addr)
 	.then(function(res){
@@ -132,7 +133,14 @@ $(function(){
 							incr = 1;
 
 							console.log("トランザクションが承認されました");
-							alert("トランザクションが承認されました");
+							if(isMultisig){
+								alert("トランザクションが承認されました。マルチシグが組成されました。");
+
+							}else{
+								alert("トランザクションが承認されました。マルチシグを組成します。");
+								multisig();
+								isMultisig = true;
+							}
 							$modal.find('.progress-bar').css({'width':'0%'});
 							next();
 						}
@@ -243,17 +251,6 @@ $(function(){
 		}
 	};
 
-	function actionMultisig(){
-		var result = confirm("マルチシグを組成します。");
-		if(result){
-			multisig().done(
-			function(data){
-				console.log(data);
-			});
-		}
-	}
-
-	$("#btnMultisig").click(function(){actionMultisig();return false;});
 
 //////////////////////////////////////////////////////////////
 
@@ -267,8 +264,8 @@ $(function(){
 <!-- <button id="btnReset">submit</button> -->
 <br>
 <img id="receiver_qr" src="" alt="" width="180" height="180">
-<div id="asset_qr"></div>
-<button id="btnMultisig">マルチシグ組成</button>
+<div id="account_qr"></div>
+
 
 <div class="collapse" id="cosigners-ctrl">
 	<table  class="table" id="cosigners">
