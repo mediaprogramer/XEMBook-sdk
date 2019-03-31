@@ -764,7 +764,7 @@ function getNodes(){
 	return d.promise();
 }
 
-function connectNode(nodes,query){
+function connectNode_bk(nodes,query){
 
 	if(targetNode == "" || isHashAccess){
 		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
@@ -787,7 +787,7 @@ function connectNode(nodes,query){
 				console.log("ハッシュアクセスモードに切り替えます。");
 				isHashAccess = true;
 			}
-			return connectNode(nodes,query,nodeIndex)
+			return connectNode(nodes,query)
 			.then(function(res){
 				d.resolve(res);
 			});
@@ -796,7 +796,7 @@ function connectNode(nodes,query){
 	return d.promise();
 }
 
-function connectNodeToPost(nodes,query,txString){
+function connectNodeToPost_bk(nodes,query,txString){
 
 	if(targetNode == "" || isHashAccess){
 		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
@@ -827,7 +827,7 @@ function connectNodeToPost(nodes,query,txString){
 				console.log("ハッシュアクセスモードに切り替えます。");
 				isHashAccess = true;
 			}
-			return connectNodeToPost(nodes,query,txObject)
+			return connectNodeToPost(nodes,query,txString)
 			.then(function(res){
 				d.resolve(res);
 			});
@@ -836,7 +836,66 @@ function connectNodeToPost(nodes,query,txString){
 	return d.promise();
 }
 
+function connectNodeToPost(nodes,query,txString){
 
+	setTargetNode(nodes);
+	var obj = {
+		url: "http://" + targetNode + query  ,
+		type: 'POST',
+		contentType:'application/json',
+		data: txString  ,
+		error: function(XMLHttpRequest) {
+			console.log( $.parseJSON(XMLHttpRequest.responseText));
+		}
+	}
+	return connectNode2(nodes,query,obj);
+
+}
+
+function connectNode(nodes,query){
+
+
+	setTargetNode(nodes);
+	var obj ={url:  "http://" + targetNode + query ,type: "GET",timeout: 3000};
+	return connectNode2(nodes,query,obj);
+}
+
+function setTargetNode(nodes){
+	if(targetNode == "" || isHashAccess){
+		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
+	}
+
+}
+function connectNode2(nodes,query,obj){
+
+
+
+	var d = $.Deferred();
+	console.log("connectNode:"+  "http://" + targetNode + query);
+	$.ajax(obj).then(
+
+		function(res){
+			console.log(res);
+			d.resolve(res);
+		}
+	).catch(
+		function(res){
+			console.log("catch!");
+			targetNode = "";
+			if(lastHash != ""){
+				console.log("ハッシュアクセスモードに切り替えます。");
+				isHashAccess = true;
+			}
+			targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
+			obj.url = targetNode + query;
+			return connectNode2(nodes,query,obj)
+			.then(function(res){
+				d.resolve(res);
+			});
+		}
+	);
+	return d.promise();
+}
 
 var multiConnect = function(api,num){
 	var nodeIndex = num;
