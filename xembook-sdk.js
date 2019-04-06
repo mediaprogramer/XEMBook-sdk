@@ -887,7 +887,7 @@ function connectNode2(nodes,query,obj){
 				isHashAccess = true;
 			}
 			targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":7890";
-			obj.url = targetNode + query;
+			obj.url = "http://" + targetNode + query;
 			return connectNode2(nodes,query,obj)
 			.then(function(res){
 				d.resolve(res);
