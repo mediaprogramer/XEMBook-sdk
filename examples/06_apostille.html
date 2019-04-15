@@ -23,14 +23,16 @@ $(document).ready(function() {
 	var s = nacl.randomBytes(32);
 	var k = KeyPair.create(s);
 	var addr = toAddress(k.publicKey.toString(), "104");
-	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":1000000,"msg":""}}';
+	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":150000,"msg":""}}';
 	$("#receiver_qr").attr("src","http://chart.apis.google.com/chart?chs=180x180&cht=qr&chl=" + bill);
 	$("#account_qr").text(addr);
+	$("#raccoonn").attr("href", "https://raccoonwallet.page.link/?link=https%3a%2f%2fraccoonwallet%2ecom%2fpayment%3faddr%3d" + addr + "%26amount%3d150000&apn=wacode.yamada.yuki.nempaymentapp");
+
 	var checkInterval = 3000;
 	var checkAccountTransfersAll;
 	var checkAccountUnconfirmedTransactions;
 	var lastHeight = 0;
-
+	var isApostille = false;
 
 	getNemInfo("/account/transfers/all?address=" + addr)
 	.then(function(res){
@@ -94,7 +96,6 @@ $(document).ready(function() {
 
 				lastHeight = val.meta.height;
 				console.log(lastHeight);
-				$('#cosigners-ctrl').collapse('show');
 
 				//再び未承認トランザクションの監視
 				clearInterval(checkAccountTransfersAll);
@@ -126,6 +127,7 @@ $(document).ready(function() {
 
 			if(is_confirmed) {
 
+				is_confirmed = false;
 				console.log("complete!");
 				//プログレスバー終了
 				$modal.find('.progress-bar').css({'width':'100%'});
@@ -134,11 +136,23 @@ $(document).ready(function() {
 						function(next) {
 							count = 0;
 							ticker = 700;
-							is_confirmed = false;
+//							is_confirmed = false;
 							incr = 1;
 
-							console.log("トランザクションが承認されました");
-							alert("トランザクションが承認されました");
+							if(isApostille){
+								alert("アポスティーユ登録しました。");
+								$("#account_qr").html("<a target='_blank' href='http://explorer.nemchina.com/#/s_account?account="+ addr +"'>" + addr + "<a>");
+
+								$('#openapostille-ctrl').collapse('show');
+
+							}else{
+								alert("トランザクションが承認されました。アポスティーユするファイルを指定してください。");
+								isApostille = true;
+								$( "#cosigners tbody" ).append( "<tr>" +
+									"<td>"+ tempGetPrivateKey(s) + "</td>" +
+								"</tr>" );
+								$('#cosigners-ctrl').collapse('show');
+							}
 							$modal.find('.progress-bar').css({'width':'0%'});
 							next();
 						}
@@ -158,12 +172,7 @@ $(document).ready(function() {
 		getNemInfo("/time-sync/network-time").then(
 			function(res){
 
-//				let amount = parseInt(1 * 1000000, 10);
-				let amount = parseInt(0 * 1000000, 10);
-			//	var amount = parseInt(1, 10);
 				let message = {payload:hash,type:1};
-				let due = 60;
-
 				let timeStamp = Math.floor(res.sendTimeStamp/1000);
 
 				let entity = {
@@ -171,12 +180,11 @@ $(document).ready(function() {
 					'version': getVersion(104,1),
 					'signer': k.publicKey.toString(),
 					'timeStamp': timeStamp,
-					'deadline' : timeStamp + (due * 60),
+					'deadline' : timeStamp + (3600),
 					'recipient': "NCZSJHLTIMESERVBVKOW6US64YDZG2PFGQCSV23J",
-					'amount': amount,
+					'amount': 0,
 					'fee': 150000,
 					'message': message,
-
 				};
 
 				let tx = serializeTransaction(entity);
@@ -184,15 +192,29 @@ $(document).ready(function() {
 
 				console.log(entity);
 				postNemSignedInfo("/transaction/announce",tx,kp.sign(tx)).then(
-					function(){
-
+					function(res){
 						console.log("done!");
+						console.log(res);
+						$("#openapostille_link").attr("href", "https://www.openapostille.net/upload-fast/" + res.transactionHash.data );
+						$("#openapostille_link").attr("target", "_blank" );
+						$("#openapostille_hash").text(res.transactionHash.data);
+
 					}
 				);
 			}
 		)
 	}
 
+	var tempGetPrivateKey = function(ua){
+		let pk = '';
+		for (let i = 0; i < ua.length; i++) {
+			let code = ua[i];
+			pk += HEX[code >>> 4];
+			pk += HEX[code & 0x0F];
+		}
+
+		return pk;
+	}
 	//ランダム正規分布(m=中央値,s=偏り)
 	var normRand = function (m, s) {
 		var a = 1 - Math.random();
@@ -215,20 +237,13 @@ $(document).ready(function() {
 			return function(e) {
 
 				var data = e.target.result;
-				console.log(data);
-				//console.log(data.split(/,(.+)?/)[1]);
 				var rawFileContent = CryptoJS.enc.Base64.parse(data.split(/,(.+)?/)[1]);
-				console.log(rawFileContent);
 				var fileContent = CryptoJS.SHA256(rawFileContent);
 				var apostilleHash = "fe4e545903" + fileContent;
-				console.log(apostilleHash);
-
 				var result = confirm("アポスティーユします。よろしいですか？");
 				if(result){
-					apostille(apostilleHash).done(
-					function(data){
-						console.log(data);
-					});
+					apostille(apostilleHash);
+
 				}
 			};
 		})(file);
@@ -243,22 +258,41 @@ $(document).ready(function() {
 
 </head>
 <body>
+	<div class="container">
+	<div >
 
-	<h1>Fast Apostille</h1>
+	<h1>FAST Apostille</h1>
+<h5>NEM Apostille protects you from conspiracy</h5>
 	<br>
-	<img id="receiver_qr" src="" alt="" width="180" height="180">
-	<div id="account_qr"></div>
+<ul>
+	<li>以下のQRコードからNEM Walletで入金、あるいはRaccoonn Walletのディープリンクをクリックして0.15XEMを新規アカウントに入金してください。</li>
+	<li>入金が承認されたら秘密鍵が表示されるので、所有を証明したい人はその内容を保存してください（存在証明のみの場合は保存の必要はありません）。</li>
+	<li>アポスティーユしたいファイルを指定してください。承認されるとアカウントがエクスプローラーにリンクされるので、アポスティーユ完了を確認してください。</li>
+	<li>証明書は発行されません。作業中はリロードしないように気をつけてください。アポスティーユの種類はSHA256のパブリックアポスティーユです。</li>
+</ul>
 
+
+	<img id="receiver_qr" src="" alt="" width="180" height="180"><br>
+	アポスティーユに使用するアカウント
+	<div id="account_qr"></div>
+	<div><a id="raccoonn" href="">RaccoonWalletで入金</a></div>
 
 	<div class="collapse" id="cosigners-ctrl">
-		<form>
-
-			<input type="file" id="file" >
-		</form>
 		<table  class="table" id="cosigners">
-			<thead><tr><th>区分</th><th>アドレス</th><th>操作</th></tr></thead>
+			<thead><tr><th>秘密鍵</th></tr></thead>
 			<tbody></tbody>
 		</table>
+		<form>
+			アポスティーユ対象ファイルを指定してください。<br>
+			<input type="file" id="file" >
+		</form>
+	</div>
+
+	<div class="collapse" id="openapostille-ctrl">
+		Apostille登録TxHash
+		<div id="openapostille_hash"></div>
+		<a id="openapostille_link" href=""　target="_blank" rel="noopener">OpenApostilleにTxHashを転送する</a>
+
 	</div>
 
 	<!-- <button id="load">Load It!</button> -->
@@ -275,10 +309,9 @@ $(document).ready(function() {
 	 </div>
 	</div>
 
-<div class="container">
-<div >
-<p>
+	<hr>
 
+	<i>powered by XEMBook-sdk</i>
 
 </div>
 </div>
