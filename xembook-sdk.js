@@ -718,7 +718,8 @@ var calculateMosaics = function calculateMosaics(multiplier, mosaics) {
 
 var getFee = function(amount,message,mosaics){
 
-	let msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
+//	let msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
+	let msgFee = message.payload.length ? 0.05*Math.max(1, Math.floor(message.payload.length / 2 / 32) + 1) : 0;
 	console.log("================");
 
 	console.log(msgFee);
