@@ -23,17 +23,21 @@ $(document).ready(function() {
 	var s = nacl.randomBytes(32);
 	var k = KeyPair.create(s);
 	var addr = toAddress(k.publicKey.toString(), "104");
-	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":150000,"msg":""}}';
+	var bill = '{"v":2,"type":2,"data":{"addr":"' + addr + '","amount":650000,"msg":""}}';
+	var signer = "";
+	var signerAddress = "";
 	$("#receiver_qr").attr("src","http://chart.apis.google.com/chart?chs=180x180&cht=qr&chl=" + bill);
 	$("#account_qr").text(addr);
-	$("#raccoonn").attr("href", "https://raccoonwallet.page.link/?link=https%3a%2f%2fraccoonwallet%2ecom%2fpayment%3faddr%3d" + addr + "%26amount%3d150000&apn=wacode.yamada.yuki.nempaymentapp");
+	$("#raccoonn").attr("href", "https://raccoonwallet.page.link/?link=https%3a%2f%2fraccoonwallet%2ecom%2fpayment%3faddr%3d" + addr + "%26amount%3d650000&apn=wacode.yamada.yuki.nempaymentapp");
 
 	var checkInterval = 3000;
 	var checkAccountTransfersAll;
 	var checkAccountUnconfirmedTransactions;
 	var lastHeight = 0;
 	var isApostille = false;
+	var isMultisig = false;
 
+	//
 	getNemInfo("/account/transfers/all?address=" + addr)
 	.then(function(res){
 		lastHeight = getLastHeight(res);
@@ -50,24 +54,23 @@ $(document).ready(function() {
 	var getLastHeight = function(res){
 		console.log("get last height");
 		if(res.data.length > 0){
-			var dataArray = res.data;
-			dataArray[0].meta.height
+			res.data[0].meta.height;
 		}else{
 			return 0;
 		}
 	}
 
-	//未承認トランザクションの解析
+	//未承認トランザクションの監視
 	var parseAccountUnconfirmedTransactions = function(res){
 
-		var dataArray = res.data;
-		dataArray.some(function(val){
+		res.data.some(function(val){
 
-			progress(count);
+			setProgress(count);
 			var $modal = $('.js-loading-bar');
 			var $bar = $modal.find('.progress-bar');
 			$modal.modal('show');
 
+			//未承認データが存在したら、承認データの監視開始
 			clearInterval(checkAccountUnconfirmedTransactions);			//未承認チェック終了
 			checkAccountTransfersAll = setInterval(function(){
 				getNemInfo("/account/transfers/all?address=" + addr)
@@ -80,35 +83,50 @@ $(document).ready(function() {
 		});
 	};
 
-	//直近のトランザクション取得
+	//承認データの監視
 	var parseAccountTransfersAll = function(res){
 
 		var dataArray = res.data;
-		if(res.data.length > 0){
-			var val = res.data[0];
 
-			if(lastHeight < val.meta.height){
+		if(res.data.length == 0) return;
+//		if(res.data.length > 0){
+		var val = res.data[0];
 
-				//プログレスバー終了
-				is_confirmed　=　true;
-				ticker = 50;
-				incr = 20;
+		//ブロック高が更新されたらトリガー発火
+		if(lastHeight < val.meta.height){
 
-				lastHeight = val.meta.height;
-				console.log(lastHeight);
+			//プログレスバー終了
+			is_confirmed　=　true;
+			ticker = 50;
+			incr = 20;
 
-				//再び未承認トランザクションの監視
-				clearInterval(checkAccountTransfersAll);
-				checkAccountUnconfirmedTransactions = setInterval(function(){
-					getNemInfo("/account/unconfirmedTransactions?address="+ addr)
-					.then(function(res){
-						parseAccountUnconfirmedTransactions(res);
-					});
-				},
-				checkInterval
+			lastHeight = val.meta.height;
+
+			//初回トランザクションはアカウントの所有者
+			if(res.data.length == 1){
+				signer = val.transaction.signer;
+				getNemInfo("/account/get/from-public-key?publicKey=" + signer).then(
+					function(res2){
+						console.log(res2);
+						console.log(res2.account.address);
+						signerAddress = res2.account.address;
+					}
 				);
 			}
+			console.log(res);
+
+			//再び未承認トランザクションの監視再開
+			clearInterval(checkAccountTransfersAll);
+			checkAccountUnconfirmedTransactions = setInterval(function(){
+				getNemInfo("/account/unconfirmedTransactions?address="+ addr)
+				.then(function(res){
+					parseAccountUnconfirmedTransactions(res);
+				});
+			},
+			checkInterval
+			);
 		}
+//		}
 	};
 
 	var count = 0;
@@ -117,7 +135,7 @@ $(document).ready(function() {
 	var incr = 1;
 
 	//着金確認プログレスバー
-	function progress(count){
+	function setProgress(count){
 		setTimeout(function(){
 			var $modal = $('.js-loading-bar');
 			count+=incr;
@@ -125,6 +143,7 @@ $(document).ready(function() {
 				count = 90;
 			}
 
+			//完了
 			if(is_confirmed) {
 
 				is_confirmed = false;
@@ -140,14 +159,16 @@ $(document).ready(function() {
 							incr = 1;
 
 							if(isApostille){
+								isApostille = false;
 								alert("アポスティーユ登録しました。");
 								$("#account_qr").html("<a target='_blank' href='http://explorer.nemchina.com/#/s_account?account="+ addr +"'>" + addr + "<a>");
 
 								$('#openapostille-ctrl').collapse('show');
-
+							}else if(isMultisig){
+								alert("マルチシグ登録しました。");
+								isMultisig = false;
 							}else{
 								alert("トランザクションが承認されました。アポスティーユするファイルを指定してください。");
-								isApostille = true;
 								$( "#cosigners tbody" ).append( "<tr>" +
 									"<td>"+ tempGetPrivateKey(s) + "</td>" +
 								"</tr>" );
@@ -162,7 +183,7 @@ $(document).ready(function() {
 			}
 
 			$modal.find('.progress-bar').css({'width':count+'%'});
-			progress(count);
+			setProgress(count);
 
 		},normRand(ticker, 50));
 	}
@@ -193,6 +214,8 @@ $(document).ready(function() {
 				console.log(entity);
 				postNemSignedInfo("/transaction/announce",tx,kp.sign(tx)).then(
 					function(res){
+						isApostille = true;
+
 						console.log("done!");
 						console.log(res);
 						$("#openapostille_link").attr("href", "https://www.openapostille.net/upload-fast/" + res.transactionHash.data );
@@ -212,7 +235,6 @@ $(document).ready(function() {
 			pk += HEX[code >>> 4];
 			pk += HEX[code & 0x0F];
 		}
-
 		return pk;
 	}
 	//ランダム正規分布(m=中央値,s=偏り)
@@ -249,9 +271,48 @@ $(document).ready(function() {
 		})(file);
 
 	}
+
+	var actionMultisig = function(){
+
+		getNemInfo("/time-sync/network-time").then(
+			function(res){
+
+				let due = 60;
+				let timeStamp = Math.floor(res.sendTimeStamp/1000);
+
+				let entity = {
+					'type': multisigModification,
+					'version': getVersion(104,2),
+					'signer': k.publicKey.toString(),
+					'timeStamp': timeStamp,
+					'deadline' : timeStamp + (due * 60),
+					'fee': 500000,
+					"modifications": [
+						{"modificationType": 1,"cosignatoryAccount": signer,"cosignatoryAddress": signerAddress},
+					],
+					"minCosignatories" : {"relativeChange": 1}
+				};
+
+				let tx = serializeTransaction(entity);
+				let kp = KeyPair.create(s);
+
+				console.log(entity);
+				postNemSignedInfo("/transaction/announce",tx,kp.sign(tx)).then(
+					function(){
+						isMultisig = true;
+						console.log("done!");
+					}
+				);
+			}
+		)
+	}
+
+
 	$('#file').change(function(e) {
 		loadImage('file');
 	});
+	$("#btnMultisig").click(function(){actionMultisig();return false;});
+
 });
 </script>
 
@@ -265,7 +326,7 @@ $(document).ready(function() {
 <h5>NEM Apostille protects you from conspiracy</h5>
 	<br>
 <ul>
-	<li>以下のQRコードからNEM Walletで入金、あるいはRaccoonn Walletのディープリンクをクリックして0.15XEMを新規アカウントに入金してください。</li>
+	<li>以下のQRコードからNEM Walletで入金、あるいはRaccoonn Walletのディープリンクをクリックして0.65XEMを新規アカウントに入金してください。</li>
 	<li>入金が承認されたら秘密鍵が表示されるので、所有を証明したい人はその内容を保存してください（存在証明のみの場合は保存の必要はありません）。</li>
 	<li>アポスティーユしたいファイルを指定してください。承認されるとアカウントがエクスプローラーにリンクされるので、アポスティーユ完了を確認してください。</li>
 	<li>証明書は発行されません。作業中はリロードしないように気をつけてください。アポスティーユの種類はSHA256のパブリックアポスティーユです。</li>
@@ -292,6 +353,13 @@ $(document).ready(function() {
 		Apostille登録TxHash
 		<div id="openapostille_hash"></div>
 		<a id="openapostille_link" href=""　target="_blank" rel="noopener">OpenApostilleにTxHashを転送する</a>
+		<hr>
+		<div>
+			<button id="btnMultisig">マルチシグ化して入金アカウントで所有する</button>
+		</div>
+	</div>
+
+	<div class="collapse" id="multisig-ctrl">
 
 	</div>
 
