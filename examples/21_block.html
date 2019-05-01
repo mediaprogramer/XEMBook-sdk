@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>NEM2 Blockエクスプローラー</title>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
+
+<script src="../xembook2-sdk.js"></script>
+<script src="../nacl-fast.js"></script>
+<script src="../xembook-keypair.js"></script>
+
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+<script>
+$(function(){
+
+	var lastHeight;
+
+	var getNem2BlocksInfo = function(){
+		var d = $.Deferred();
+		getHeightCursor().then((res)=>{
+
+			return getNemInfo("/blocks/" + res + "/limit/100/");
+
+		}).then((res)=>{
+
+			lastHeight = compact(res[res.length - 1].block.height) - 1;
+
+			res.some(function(val){
+
+				if(compact(val.meta.totalFee) >= 0){
+					$( "#items tbody" ).append( "<tr>" +
+						"<td><a target='_blank' href='http://13.114.200.132:8000/#/block/" + compact(val.block.height) +"'>"+  compact(val.block.height)  +"</a></td>" +
+						"<td>" + compact(val.meta.totalFee) + "</td>" +
+						"<td>" + compact(val.block.timestamp) + "</td>" +
+					"</tr>" );
+				}
+			});
+
+			d.resolve(res);
+		});
+		return d.promise();
+	}
+
+	function getHeightCursor(){
+
+		var d = $.Deferred();
+		if(!lastHeight){
+			getNemInfo("/chain/height/")
+			.then(function(res){
+				lastHeight = compact(res.height);
+				d.resolve(lastHeight);
+			});
+		}else{
+
+			d.resolve(lastHeight);
+		}
+		return d.promise();
+	}
+
+//	getNem2BlocksInfo();
+	multiConnect(getNem2BlocksInfo,2);
+
+	var compact = function(uint64){
+
+		const low = uint64[0];
+		const high = uint64[1];
+		// don't compact if the value is >= 2^53
+		if (0x00200000 <= high)
+			return uint64;
+
+		// multiply because javascript bit operations operate on 32bit values
+		return (high * 0x100000000) + low;
+	}
+
+//////////////////////////////////////////////////////////////
+
+});
+
+</script>
+</head>
+<body>
+
+<h1>NEM2 Block エクスプローラー</h1>
+<!-- <button id="btnReset">submit</button> -->
+<br>
+
+<div id="items-ctrl">
+	<table  class="table" id="items">
+		<thead><tr><th>height</th><th>totalFee</th><th>timestamp</th></tr></thead>
+		<tbody></tbody>
+	</table>
+</div>
+
+</body>
+</html>
