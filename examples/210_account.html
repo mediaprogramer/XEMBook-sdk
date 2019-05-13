@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0">
+
+<title>210_account</title>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.8.0/sha3.min.js"></script>
+<script src="../extlib/coders/convert.js"></script>
+<script src="../extlib/crypto/nacl_catapult.js"></script>
+<script src="../extlib/crypto/keyPair.js"></script>
+<script src="../bundle.js"></script>
+
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+<script>
+
+$(function(){
+
+	//to XEMBook-sdk
+	function publicKeyToAddress(publicKey, networkIdentifier){
+
+		let xembook = require("/main.js");
+
+		const decodedAddress = new Uint8Array(25);
+		decodedAddress[0] = networkIdentifier;
+
+		const publicKeyHash = sha3_256.arrayBuffer(publicKey);// publicKey:uint8
+		const ripemdHash = xembook.getRipemdHash(publicKeyHash);
+		array.copy(decodedAddress, ripemdHash, 20, 1);
+
+		const hash = sha3_256.arrayBuffer(decodedAddress.subarray(0, 20 + 1));
+		array.copy(decodedAddress, array.uint8View(hash), 4, 20 + 1);
+
+		return base32.encode(decodedAddress);
+	}
+
+	function derivePassSha(password, seed,count) {
+	    // Errors
+		if(!password) throw new Error('Missing argument !');
+		if(!seed) throw new Error('Missing argument !');
+	    if(!count || count <= 0) throw new Error('Please provide a count number above 0');
+
+		let uint8seed = convert.hexToUint8(convert.utf8ToHex(seed))
+		for (let i = 0; i < count; ++i) {
+			uint8seed = array.uint8View(sha3_256.arrayBuffer(uint8seed))// in uint8 out arrayBuffer
+	    }
+
+	    let uint8password = convert.hexToUint8(password + convert.uint8ToHex(uint8seed));
+		for (let i = 0; i < count; ++i) {
+
+			uint8password = array.uint8View(sha3_256.arrayBuffer(uint8password))// in uint8 out arrayBuffer
+	    }
+
+		return uint8password;
+	};
+
+	var entropy = "";
+	progress(0);
+	var $modal = $('.js-progress-bar');
+	$modal.modal('show');
+
+	//プログレスバー
+	function progress(count){
+		setTimeout(function(){
+
+			if(lastEventPageX != eventPageX && lastEventPageY != eventPageY){
+
+				entropy += (""+ eventPageX).slice(-2) + (""+eventPageY).slice(-2);
+				console.log(entropy);
+				count = entropy.length / 1000 * 100;
+				$modal.find('.progress-bar').css({'width':count+'%'});
+				lastEventPageX = eventPageX;
+				lastEventPageY = eventPageY;
+			}
+
+			if(count >= 100) {
+
+				console.log("complete!");
+				//プログレスバー終了
+				$modal.modal('hide');
+
+				// Create random bytes
+				const randomBytesArray = nacl.randomBytes(32);
+				const hashKey = convert.uint8ToHex(randomBytesArray); // TODO: derive private key correctly
+				const prihashkey = derivePassSha(hashKey,entropy,1000);
+
+				console.log("private:" + convert.uint8ToHex(prihashkey));
+				$("#account_prikey").text(convert.uint8ToHex(prihashkey));
+
+				const keyPair = KeyPair.createKeyPairFromPrivateKeyString(convert.uint8ToHex(prihashkey));
+				console.log("public:" + convert.uint8ToHex(keyPair.publicKey))
+				$("#account_pubkey").text(convert.uint8ToHex(keyPair.publicKey));
+
+				const address = publicKeyToAddress(keyPair.publicKey, 0x90); //0x90 MIJIN_TEST
+				console.log("address:" + address);
+				$("#account_address").text(address);
+
+				//プログレスバー初期化
+				count = 0;
+				is_confirmed = false;
+				$modal.find('.progress-bar').css({'width':'0%'});
+
+				return; // 終了
+			}
+			progress(count);
+
+		},50);
+	}
+
+	// マウス
+	let eventPageX = 0;
+	let eventPageY = 0;
+	let lastEventPageX = 0;
+	let lastEventPageY = 0;
+	document.body.addEventListener('mousemove', function(e) {
+		eventPageY =  e.pageY;
+		eventPageX =  e.pageX;
+	});
+
+	// タッチ
+	document.body.addEventListener('touchmove', function(e) {
+		for (let i = 0; i < e.changedTouches.length; ++i) {
+			const touch = e.changedTouches[i];
+			eventPageY =  touch.pageY;
+			eventPageX =  touch.pageX;
+		}
+	});
+});
+
+</script>
+</head>
+<body>
+	<div class="container">
+	<div >
+
+<h1>ジェネレーター</h1>
+<br>
+
+<div id="items-ctrl">
+	<ul>
+		<li>[PRIVATE_KEY]：<span id="account_prikey"></span></li>
+		<li>[PUBLICK_KEY]：<span id="account_pubkey"></span></li>
+		<li>[ADDRESS]：<span id="account_address"></span></li>
+	</ul>
+</div>
+
+<div class="modal js-progress-bar">
+ <div class="modal-dialog">
+   <div class="modal-content">
+	 <div class="modal-body">
+	   <div class="progress progress-popup">
+		<div class="progress-bar progress-bar-striped active"></div>
+	   </div>
+		<div>秘密鍵の強度を高めています。</br>
+			画面上を指（マウス）で複雑になぞってください。</div>
+	 </div>
+   </div>
+ </div>
+</div>
+<hr>
+
+<i>powered by XEMBook-sdk</i><br>
+XEMBook-sdk is copied from <a href="https://github.com/nemtech/nem2-library-js">nemtech / nem2-library-js</a> and is updated to export custom functions.
+</div>
+</div>
+</body>
+</html>

@@ -735,6 +735,27 @@ var getTimestamp = function(diff){
 	return Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000)) + diff;
 }
 
+var date_format = function(num) {
+	return ( num < 10 ) ? '0' + num  : num;
+};
+
+var dispTimeStamp = function(timeStamp){
+
+		var NEM_EPOCH = Date.UTC(2016, 3, 1, 0, 0, 0, 0);
+		var timestampNemesisBlock = 1459468800;
+
+//		var d = new Date(timeStamp + timestampNemesisBlock * 1000);
+		var d = new Date(timeStamp + NEM_EPOCH);
+//		var strDate = d.getFullYear()%100
+		var strDate = d.getFullYear()
+			+ "-" + date_format( d.getMonth() + 1 )
+			+ '-' + date_format( d.getDate() )
+			+ ' ' + date_format( d.getHours() )
+			+ ':' + date_format( d.getMinutes() )
+			+ ':' + date_format( d.getSeconds() ) ;
+		return 	strDate;
+}
+
 var getVersion = function getVersion( network,val) {
 	if (network === 104) {
 		return 0x68000000 | val;
