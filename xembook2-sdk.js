@@ -3,7 +3,7 @@
 let NEM_EPOCH = Date.UTC(2015, 2, 29, 0, 6, 25, 0);
 var HEX = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
 
-let transfer = 0x101; // 257
+
 let importanceTransfer = 0x801; // 2049
 let multisigModification = 0x1001; // 4097
 let multisigSignature = 0x1002; // 4098
@@ -18,728 +18,216 @@ var lastHash = "";
 
 var currentFeeFactor = 0.05;
 
-let hex2a = function(hexx) {
-	let hex = hexx.toString();
-	let str = '';
-	for (let i = 0; i < hex.length; i += 2)
-		str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-	return str;
-};
 
-let hashfunc = function(dest, data, dataLength) {
-	let convertedData = ua2words(data, dataLength);
-	let hash = CryptoJS.SHA3(convertedData, { outputLength: 512 });
-	words2ua(dest, hash);
-}
+		const readInt32 = (offset, bytes) => {
+			return bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;
+		};
 
-let hashobj = function() {
-	this.sha3 = CryptoJS.algo.SHA3.create({ outputLength: 512 });
-	this.reset = function() {
-		this.sha3 = CryptoJS.algo.SHA3.create({ outputLength: 512 });
+		const readInt16 = (offset, bytes) => {
+			return bytes[offset] | bytes[offset + 1] << 8;
+		};
+
+		// region flatbuffers region
+		const __offset = (val0, fieldPos, bytes) => {
+			const vtable = val0 - readInt32(val0, bytes);
+			return fieldPos < readInt16(vtable, bytes) ? readInt16(vtable + fieldPos, bytes) : 0;
+		};
+
+		let __vector_length = (offset, bytes) => {
+			return readInt32(offset + readInt32(offset, bytes), bytes);
+		};
+
+		let __indirect = (offset, bytes) => {
+			return offset + readInt32(offset, bytes);
+		};
+
+		let __vector = (offset, bytes) => {
+			return offset + readInt32(offset, bytes) + 4;
+		};
+
+		let findVector = (val0, fieldPos, bytes, size) => {
+			let offset = __offset(val0, fieldPos, bytes);
+			let offsetLong = offset + val0;
+			let vecStart = __vector(offsetLong, bytes);
+			let vecLength = __vector_length(offsetLong, bytes) * (size ? size : 1);
+			return offset ? bytes.slice(vecStart, vecStart + vecLength) : 0;
+		};
+
+		const findParam = (val0, fieldPos, bytes, numBytes) => {
+			let offset = __offset(val0, fieldPos, bytes);
+			return offset ? bytes.slice(offset + val0, offset + val0 + numBytes) : 0;
+		};
+
+		const findObjectStartPosition = (val0, fieldPos, bytes) => {
+			let offset = __offset(val0, fieldPos, bytes);
+			return __indirect(offset + val0, bytes);
+		};
+
+		let findArrayLength = (val0, fieldPos, bytes) => {
+			const offset = __offset(val0, fieldPos, bytes);
+			return offset ? __vector_length(val0 + offset, bytes) : 0;
+		};
+
+		let findObjectArrayElementStartPosition = (val0, fieldPos, bytes, index) => {
+			const offset = __offset(val0, fieldPos, bytes);
+			let vector = __vector(val0 + offset, bytes);
+			return __indirect(vector + index * 4, bytes);
+		};
+		// endregion
+
+	//to XEMBook-sdk
+	function publicKeyToAddress(publicKey, networkIdentifier){
+
+		let xembook = require("/main.js");
+
+		const decodedAddress = new Uint8Array(25);
+		decodedAddress[0] = networkIdentifier;
+
+		const publicKeyHash = sha3_256.arrayBuffer(publicKey);// publicKey:uint8
+		const ripemdHash = xembook.getRipemdHash(publicKeyHash);
+		array.copy(decodedAddress, ripemdHash, 20, 1);
+
+		const hash = sha3_256.arrayBuffer(decodedAddress.subarray(0, 20 + 1));
+		array.copy(decodedAddress, array.uint8View(hash), 4, 20 + 1);
+
+		return base32.encode(decodedAddress);
 	}
-	this.update = function(data) {
-		if (data instanceof BinaryKey) {
-			let converted = ua2words(data.data, data.data.length);
-			let result = CryptoJS.enc.Hex.stringify(converted);
-			this.sha3.update(converted);
 
-		} else if (data instanceof Uint8Array) {
-			let converted = ua2words(data, data.length);
-			this.sha3.update(converted);
 
-		} else if (typeof data === "string") {
-			let converted = CryptoJS.enc.Hex.parse(data);
-			this.sha3.update(converted);
-
-		} else {
-			throw new Error("unhandled argument");
+	function stringToAddress(encoded){
+		console.log(encoded);
+		if (40 !== encoded.length){
+			console.log("Error!!");
 		}
+
+		return base32.decode(encoded);
 	}
-	this.finalize = function(result) {
-		let hash = this.sha3.finalize();
-		words2ua(result, hash);
+
+	function aliasToRecipient( namespaceId ){
+		// 0x91 | namespaceId on 8 bytes | 16 bytes 0-pad = 25 bytes
+		const padded = new Uint8Array(1 + 8 + 16);
+		padded.set([0x91], 0);
+		padded.set(namespaceId.reverse(), 1);
+		padded.set(convert.hexToUint8('00'.repeat(16)), 9);
+		return padded;
+	}
+
+	function derivePassSha(password, seed,count) {
+	    // Errors
+		if(!password) throw new Error('Missing argument !');
+		if(!seed) throw new Error('Missing argument !');
+	    if(!count || count <= 0) throw new Error('Please provide a count number above 0');
+
+		let uint8seed = convert.hexToUint8(convert.utf8ToHex(seed))
+		for (let i = 0; i < count; ++i) {
+			uint8seed = array.uint8View(sha3_256.arrayBuffer(uint8seed))// in uint8 out arrayBuffer
+	    }
+
+	    let uint8password = convert.hexToUint8(password + convert.uint8ToHex(uint8seed));
+		for (let i = 0; i < count; ++i) {
+
+			uint8password = array.uint8View(sha3_256.arrayBuffer(uint8password))// in uint8 out arrayBuffer
+	    }
+
+		return uint8password;
 	};
-}
 
-let ua2words = function(ua, uaLength) {
-	let temp = [];
-	for (let i = 0; i < uaLength; i += 4) {
-		let x = ua[i]*0x1000000 + (ua[i+1] || 0)*0x10000 + (ua[i+2] || 0)* 0x100 + (ua[i+3] || 0);
-		temp.push( (x > 0x7fffffff) ?  x - 0x100000000 : x );
-	}
-	return CryptoJS.lib.WordArray.create(temp, uaLength);
-}
+		function createTransactionHash(transactionPayload) {
+			const byteBuffer = Array.from(convert.hexToUint8(transactionPayload));
+			const signingBytes = byteBuffer
+				.slice(4, 36)
+				.concat(byteBuffer.slice(4 + 64, 4 + 64 + 32))
+				.concat(byteBuffer.splice(4 + 64 + 32, byteBuffer.length));
 
-let words2ua = function(destUa, cryptowords) {
-	for (let i = 0; i < destUa.length; i += 4) {
-		let v = cryptowords.words[i / 4];
-		if (v < 0) v += 0x100000000;
-		destUa[i] = (v >>> 24);
-		destUa[i+1] = (v >>> 16) & 0xff;
-		destUa[i+2] = (v  >>> 8) & 0xff;
-		destUa[i+3] = v & 0xff;
-	}
-}
-
-
-let BinaryKey = function(keyData) {
-	this.data = keyData;
-	this.toString = function() {
-		return ua2hex(this.data);
-	}
-}
-
-let ua2hex = function(ua) {
-	var s = '';
-	for (var i = 0; i < ua.length; i++) {
-		var code = ua[i];
-		s += HEX[code >>> 4];
-		s += HEX[code & 0x0F];
-	}
-	return s;
-};
-
-let hex2ua = function(hexx) {
-	let hex = hexx.toString();//force conversion
-	let ua = new Uint8Array(hex.length / 2);
-	for (let i = 0; i < hex.length; i += 2) {
-		ua[i / 2] = parseInt(hex.substr(i, 2), 16);
-	}
-	return ua;
-};
-
-let toAddress = function(publicKey, networkId) {
-	let binPubKey = CryptoJS.enc.Hex.parse(publicKey);
-	let hash = CryptoJS.SHA3(binPubKey, {
-		outputLength: 256
-	});
-	let hash2 = CryptoJS.RIPEMD160(hash);
-	// 98 is for testnet
-	let networkPrefix = id2Prefix(104);
-	let versionPrefixedRipemd160Hash = networkPrefix + CryptoJS.enc.Hex.stringify(hash2);
-	let tempHash = CryptoJS.SHA3(CryptoJS.enc.Hex.parse(versionPrefixedRipemd160Hash), {
-		outputLength: 256
-	});
-	let stepThreeChecksum = CryptoJS.enc.Hex.stringify(tempHash).substr(0, 8);
-	let concatStepThreeAndStepSix = hex2a(versionPrefixedRipemd160Hash + stepThreeChecksum);
-	let ret = b32encode(concatStepThreeAndStepSix);
-	return ret;
-};
-
-var id2Prefix = function id2Prefix(id) {
-	if (	   id ===  104) { return "68";
-	} else if (id === -104) { return "98";
-	} else {				  return "60"; }
-};
-var b32encode = function(s) {
-	var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-	var parts = [];
-	var quanta = Math.floor(s.length / 5);
-	var leftover = s.length % 5;
-
-	if (leftover != 0) {
-		for (var i = 0; i < 5 - leftover; i++) {
-			s += '\x00';
+			const hash = new Uint8Array(32);
+			sha3Hasher.func(hash, signingBytes, 32);
+			return convert.uint8ToHex(hash);
 		}
-		quanta += 1;
-	}
-
-	for (var _i = 0; _i < quanta; _i++) {
-		parts.push(alphabet.charAt(s.charCodeAt(_i * 5) >> 3));
-		parts.push(alphabet.charAt((s.charCodeAt(_i * 5) & 0x07) << 2 | s.charCodeAt(_i * 5 + 1) >> 6));
-		parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 1) & 0x3F) >> 1));
-		parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 1) & 0x01) << 4 | s.charCodeAt(_i * 5 + 2) >> 4));
-		parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 2) & 0x0F) << 1 | s.charCodeAt(_i * 5 + 3) >> 7));
-		parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 3) & 0x7F) >> 2));
-		parts.push(alphabet.charAt((s.charCodeAt(_i * 5 + 3) & 0x03) << 3 | s.charCodeAt(_i * 5 + 4) >> 5));
-		parts.push(alphabet.charAt(s.charCodeAt(_i * 5 + 4) & 0x1F));
-	}
-
-	var replace = 0;
-	if (leftover == 1) replace = 6;else if (leftover == 2) replace = 4;else if (leftover == 3) replace = 3;else if (leftover == 4) replace = 1;
-
-	for (var _i2 = 0; _i2 < replace; _i2++) {
-		parts.pop();
-	}
-	for (var _i3 = 0; _i3 < replace; _i3++) {
-		parts.push("=");
-	}
-	return parts.join("");
-};
 
 
 
+		function deadline(deadlineParam) {
 
-var rstr2utf8 = function rstr2utf8(input) {
-	var output = "";
+			const networkTimeStamp = (new Date()).getTime();
+	        const timeStampDateTime = JSJoda.LocalDateTime.ofInstant(JSJoda.Instant.ofEpochMilli(networkTimeStamp), JSJoda.ZoneId.SYSTEM);
+	        const deadlineDateTime = timeStampDateTime.plus(2, JSJoda.ChronoUnit.HOURS);
+			console.log("deadlineDateTime");
+			var timevalue = uint64.fromUint(
+			            (deadlineDateTime.atZone(JSJoda.ZoneId.SYSTEM).toInstant().toEpochMilli() - 1459468800 * 1000));
+			console.log(uint64.compact(timevalue));
+			return 	timevalue;
 
-	for (var n = 0; n < input.length; n++) {
-		var c = input.charCodeAt(n);
+/*
+			const NetworkTime = (new Date()).getTime() - 1459468800000;
+			console.log(NetworkTime);
+			const deadlineValue = deadlineParam || 60 * 60 * 1000 * 2;
 
-		if (c < 128) {
-			output += String.fromCharCode(c);
-		} else if (c > 127 && c < 2048) {
-			output += String.fromCharCode(c >> 6 | 192);
-			output += String.fromCharCode(c & 63 | 128);
-		} else {
-			output += String.fromCharCode(c >> 12 | 224);
-			output += String.fromCharCode(c >> 6 & 63 | 128);
-			output += String.fromCharCode(c & 63 | 128);
+			console.log(deadlineValue);
+
+			return 	uint64.compact(timevalue);
+
+
+
+			const NetworkTime = (new Date()).getTime() - 1459468800000;
+			console.log(NetworkTime);
+			const deadlineValue = deadlineParam || 60 * 60 * 1000;
+			console.log(deadlineValue);
+
+			return uint64.fromUint(deadlineValue + NetworkTime);
+*/
 		}
-	}
 
-	return output;
-};
+		function tableSerialize(bytes, position, val0 = undefined) {
+			let result = [];
+			let messageStartPosition = findObjectStartPosition(val0 ? val0 : bytes[0], position, bytes);
+			let i = 0;
 
-var utf8ToHex = function utf8ToHex(str) {
-	var rawString = rstr2utf8(str);
-	var hex = "";
-	for (var i = 0; i < rawString.length; i++) {
-		hex += strlpad(rawString.charCodeAt(i).toString(16), "0", 2);
-	}
-	return hex;
-};
+			console.log(findParam(messageStartPosition, 4 + i * 2, bytes, 1 ));
+			result = result.concat(findParam(messageStartPosition, 4 + i * 2, bytes, 1));i++;
 
-// Padding helper for above function
-var strlpad = function strlpad(str, pad, len) {
-	while (str.length < len) {
-		str = pad + str;
-	}
-	return str;
-};
-
-
-var _serializeSafeString = function _serializeSafeString(str) {
-	var r = new ArrayBuffer(132);
-	var d = new Uint32Array(r);
-	var b = new Uint8Array(r);
-
-	var e = 4;
-	if (str === null) {
-		d[0] = 0xffffffff;
-	} else {
-		d[0] = str.length;
-		for (var j = 0; j < str.length; ++j) {
-			b[e++] = str.charCodeAt(j);
+			console.log(findVector( messageStartPosition, 4 + i * 2, bytes, 1));
+			console.log(convert.uint8ToHex(findVector(messageStartPosition, 4 + i * 2, bytes, 1)));
+			result = result.concat(findVector(messageStartPosition, 4 + i * 2, bytes, 1));
+			return result;
 		}
-	}
-	return new Uint8Array(r, 0, e);
-};
 
-var _serializeUaString = function _serializeUaString(str) {
-	var r = new ArrayBuffer(516);
-	var d = new Uint32Array(r);
-	var b = new Uint8Array(r);
+		function tableArraySerialize(bytes, position, val0 = undefined) {
+			let result = [];
+			const arrayLength = findArrayLength(val0 ? val0 : bytes[0], position, bytes);
+			for (let i = 0; i < arrayLength; ++i) {
 
-	var e = 4;
-	if (str === null) {
-		d[0] = 0xffffffff;
-	} else {
-		d[0] = str.length;
-		for (var j = 0; j < str.length; ++j) {
-			b[e++] = str[j];
-		}
-	}
-	return new Uint8Array(r, 0, e);
-};
+				let startArrayPosition = findObjectArrayElementStartPosition(val0 ? val0 : bytes[0], position, bytes, i);
+				let j=0;
 
-var _serializeLong = function _serializeLong(value) {
-	var r = new ArrayBuffer(8);
-	var d = new Uint32Array(r);
-	d[0] = value;
-	d[1] = Math.floor(value / 0x100000000);
-	return new Uint8Array(r, 0, 8);
-};
+				console.log(findVector( startArrayPosition, 4 + j * 2, bytes, 4));
+				console.log(convert.uint8ToHex(findVector(startArrayPosition, 4 + j * 2, bytes, 4)));
+				result = result.concat(findVector(startArrayPosition, 4 + j * 2, bytes, 4));j++;
 
-var _serializeMosaicId = function _serializeMosaicId(mosaicId) {
-	var r = new ArrayBuffer(264);
-	var serializedNamespaceId = _serializeSafeString(mosaicId.namespaceId);
-	var serializedName = _serializeSafeString(mosaicId.name);
+				console.log(findVector( startArrayPosition, 4 + j * 2, bytes, 4));
+				console.log(convert.uint8ToHex(findVector(startArrayPosition, 4 + j * 2, bytes, 4)));
+				result = result.concat(findVector(startArrayPosition, 4 + j * 2, bytes, 4));j++;
+			}
+			return result;
+		};
 
-	var b = new Uint8Array(r);
-	var d = new Uint32Array(r);
-	d[0] = serializedNamespaceId.length + serializedName.length;
-	var e = 4;
-	for (var j = 0; j < serializedNamespaceId.length; ++j) {
-		b[e++] = serializedNamespaceId[j];
-	}
-	for (var j = 0; j < serializedName.length; ++j) {
-		b[e++] = serializedName[j];
-	}
-	return new Uint8Array(r, 0, e);
-};
-
-var _serializeMosaicAndQuantity = function _serializeMosaicAndQuantity(mosaic) {
-	var r = new ArrayBuffer(4 + 264 + 8);
-	var serializedMosaicId = _serializeMosaicId(mosaic.mosaicId);
-	var serializedQuantity = _serializeLong(mosaic.quantity);
-
-	//$log.info(convert.ua2hex(serializedQuantity), serializedMosaicId, serializedQuantity);
-
-	var b = new Uint8Array(r);
-	var d = new Uint32Array(r);
-	d[0] = serializedMosaicId.length + serializedQuantity.length;
-	var e = 4;
-	for (var j = 0; j < serializedMosaicId.length; ++j) {
-		b[e++] = serializedMosaicId[j];
-	}
-	for (var j = 0; j < serializedQuantity.length; ++j) {
-		b[e++] = serializedQuantity[j];
-	}
-	return new Uint8Array(r, 0, e);
-};
-var _serializeMosaics = function _serializeMosaics(entity) {
-	var r = new ArrayBuffer(276 * 10 + 4);
-	var d = new Uint32Array(r);
-	var b = new Uint8Array(r);
-
-	var i = 0;
-	var e = 0;
-
-	d[i++] = entity.length;
-	e += 4;
-
-	var temporary = [];
-	for (var j = 0; j < entity.length; ++j) {
-		temporary.push({
-			'entity': entity[j],
-			'value': mosaicIdToName(entity[j].mosaicId) + " : " + entity[j].quantity
-		});
-	}
-	temporary.sort(function (a, b) {
-		return a.value < b.value ? -1 : a.value > b.value;
-	});
-
-	for (var j = 0; j < temporary.length; ++j) {
-		var entity = temporary[j].entity;
-		var serializedMosaic = _serializeMosaicAndQuantity(entity);
-		for (var k = 0; k < serializedMosaic.length; ++k) {
-			b[e++] = serializedMosaic[k];
-		}
-	}
-
-	return new Uint8Array(r, 0, e);
-};
-
-var _serializeProperty = function _serializeProperty(entity) {
-	var r = new ArrayBuffer(1024);
-	var d = new Uint32Array(r);
-	var b = new Uint8Array(r);
-	var serializedName = _serializeSafeString(entity['name']);
-	var serializedValue = _serializeSafeString(entity['value']);
-	d[0] = serializedName.length + serializedValue.length;
-	var e = 4;
-	for (var j = 0; j < serializedName.length; ++j) {
-		b[e++] = serializedName[j];
-	}
-	for (var j = 0; j < serializedValue.length; ++j) {
-		b[e++] = serializedValue[j];
-	}
-	return new Uint8Array(r, 0, e);
-};
-
-var _serializeProperties = function _serializeProperties(entity) {
-	var r = new ArrayBuffer(1024);
-	var d = new Uint32Array(r);
-	var b = new Uint8Array(r);
-
-	var i = 0;
-	var e = 0;
-
-	d[i++] = entity.length;
-	e += 4;
-
-	var temporary = entity;
-
-	var temporary = [];
-	for (var j = 0; j < entity.length; ++j) {
-		temporary.push(entity[j]);
-	}
-
-	var helper = {
-		'divisibility': 1,
-		'initialSupply': 2,
-		'supplyMutable': 3,
-		'transferable': 4
-	};
-	temporary.sort(function (a, b) {
-		return helper[a.name] < helper[b.name] ? -1 : helper[a.name] > helper[b.name];
-	});
-
-	for (var j = 0; j < temporary.length; ++j) {
-		var entity = temporary[j];
-		var serializedProperty = _serializeProperty(entity);
-		for (var k = 0; k < serializedProperty.length; ++k) {
-			b[e++] = serializedProperty[k];
-		}
-	}
-	return new Uint8Array(r, 0, e);
-};
-
-var _serializeLevy = function _serializeLevy(entity) {
-	var r = new ArrayBuffer(1024);
-	var d = new Uint32Array(r);
-
-	if (entity === null) {
-		d[0] = 0;
-		return new Uint8Array(r, 0, 4);
-	}
-
-	var b = new Uint8Array(r);
-	d[1] = entity['type'];
-
-	var e = 8;
-	var temp = _serializeSafeString(entity['recipient']);
-	for (var j = 0; j < temp.length; ++j) {
-		b[e++] = temp[j];
-	}
-
-	var serializedMosaicId = _serializeMosaicId(entity['mosaicId']);
-	for (var j = 0; j < serializedMosaicId.length; ++j) {
-		b[e++] = serializedMosaicId[j];
-	}
-
-	var serializedFee = _serializeLong(entity['fee']);
-	for (var j = 0; j < serializedFee.length; ++j) {
-		b[e++] = serializedFee[j];
-	}
-
-	d[0] = 4 + temp.length + serializedMosaicId.length + 8;
-
-	return new Uint8Array(r, 0, e);
-};
-
-var _serializeMosaicDefinition = function _serializeMosaicDefinition(entity) {
-	var r = new ArrayBuffer(40 + 264 + 516 + 1024 + 1024);
-	var d = new Uint32Array(r);
-	var b = new Uint8Array(r);
-
-	var temp = hex2ua(entity['creator']);
-	d[0] = temp.length;
-	var e = 4;
-	for (var j = 0; j < temp.length; ++j) {
-		b[e++] = temp[j];
-	}
-
-	var serializedMosaicId = _serializeMosaicId(entity.id);
-	for (var j = 0; j < serializedMosaicId.length; ++j) {
-		b[e++] = serializedMosaicId[j];
-	}
-
-	var utf8ToUa =hex2ua(utf8ToHex(entity['description']));
-	var temp = _serializeUaString(utf8ToUa);
-	for (var j = 0; j < temp.length; ++j) {
-		b[e++] = temp[j];
-	}
-
-	var temp = _serializeProperties(entity['properties']);
-	for (var j = 0; j < temp.length; ++j) {
-		b[e++] = temp[j];
-	}
-
-	var levy = _serializeLevy(entity['levy']);
-	for (var j = 0; j < levy.length; ++j) {
-		b[e++] = levy[j];
-	}
-	return new Uint8Array(r, 0, e);
-};
-
-
-let serializeTransaction = function(entity) {
-	var r = new ArrayBuffer(512 + 2764);
-	var d = new Uint32Array(r);
-	var b = new Uint8Array(r);
-	d[0] = entity['type'];
-	d[1] = entity['version'];
-	d[2] = entity['timeStamp'];
-
-	var temp = hex2ua(entity['signer']);
-	d[3] = temp.length;
-	var e = 16;
-	for (var j = 0; j < temp.length; ++j) {
-		b[e++] = temp[j];
-	}
-
-	// Transaction
-	var i = e / 4;
-	d[i++] = entity['fee'];
-	d[i++] = Math.floor((entity['fee'] / 0x100000000));
-	d[i++] = entity['deadline'];
-	e += 12;
-
-	// TransferTransaction
-	if (d[0] === transfer) {
-		d[i++] = entity['recipient'].length;
-		e += 4;
-		// TODO: check that entity['recipient'].length is always 40 bytes
-		for (var j = 0; j < entity['recipient'].length; ++j) {
-			b[e++] = entity['recipient'].charCodeAt(j);
-		}
-		i = e / 4;
-		d[i++] = entity['amount'];
-		d[i++] = Math.floor((entity['amount'] / 0x100000000));
-		e += 8;
-
-		if (entity['message']['type'] === 1 || entity['message']['type'] === 2) {
-			var temp = hex2ua(entity['message']['payload']);
-			if (temp.length === 0) {
-				d[i++] = 0;
-				e += 4;
-			} else {
-				// length of a message object
-				d[i++] = 8 + temp.length;
-				// object itself
-				d[i++] = entity['message']['type'];
-				d[i++] = temp.length;
-				e += 12;
-				for (var j = 0; j < temp.length; ++j) {
-					b[e++] = temp[j];
+		function createVector(builder,size, data  , alignment,func) {
+			builder.startVector(size, data.length, alignment);
+			for (var i = data.length - 1; i >= 0; i--) {
+				switch(func){
+					case 'addOffset':builder.addOffset(data[i]);break;
+					case 'addInt8'  :builder.addInt8(  data[i]);break;
+					case 'addInt32' :builder.addInt32( data[i]);break;
 				}
 			}
-		}
-
-		var entityVersion = d[1] & 0xffffff;
-		console.log(entityVersion);
-		if (entityVersion >= 2) {
-			var temp = _serializeMosaics(entity['mosaics']);
-			for (var j = 0; j < temp.length; ++j) {
-				b[e++] = temp[j];
-			}
-		}
-
-	// Provision Namespace transaction
-	} else if (d[0] === provisionNamespace) {
-		d[i++] = entity['rentalFeeSink'].length;
-		e += 4;
-		// TODO: check that entity['rentalFeeSink'].length is always 40 bytes
-		for (var j = 0; j < entity['rentalFeeSink'].length; ++j) {
-			b[e++] = entity['rentalFeeSink'].charCodeAt(j);
-		}
-		i = e / 4;
-		d[i++] = entity['rentalFee'];
-		d[i++] = Math.floor((entity['rentalFee'] / 0x100000000));
-		e += 8;
-
-		var temp = _serializeSafeString(entity['newPart']);
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp[j];
-		}
-
-		var temp = _serializeSafeString(entity['parent']);
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp[j];
-		}
-
-	// Mosaic Definition Creation transaction
-	} else if (d[0] === mosaicDefinition) {
-		var temp = _serializeMosaicDefinition(entity['mosaicDefinition']);
-		d[i++] = temp.length;
-		e += 4;
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp[j];
-		}
-
-		temp = _serializeSafeString(entity['creationFeeSink']);
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp[j];
-		}
-
-		temp = _serializeLong(entity['creationFee']);
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp[j];
-		}
-
-	// Mosaic Supply Change transaction
-	} else if (d[0] === mosaicSupply) {
-		var serializedMosaicId = _serializeMosaicId(entity['mosaicId']);
-		for (var j = 0; j < serializedMosaicId.length; ++j) {
-			b[e++] = serializedMosaicId[j];
-		}
-
-		var temp = new ArrayBuffer(4);
-		d = new Uint32Array(temp);
-		d[0] = entity['supplyType'];
-		var serializeSupplyType = new Uint8Array(temp);
-		for (var j = 0; j < serializeSupplyType.length; ++j) {
-			b[e++] = serializeSupplyType[j];
-		}
-
-		var serializedDelta = _serializeLong(entity['delta']);
-		for (var j = 0; j < serializedDelta.length; ++j) {
-			b[e++] = serializedDelta[j];
-		}
-
-	// Signature transaction
-	} else if (d[0] === multisigSignature) {
-		var temp = hex2ua(entity['otherHash']['data']);
-		// length of a hash object....
-		d[i++] = 4 + temp.length;
-		// object itself
-		d[i++] = temp.length;
-		e += 8;
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp[j];
-		}
-		i = e / 4;
-
-		temp = entity['otherAccount'];
-		d[i++] = temp.length;
-		e += 4;
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp.charCodeAt(j);
-		}
-
-	// Multisig wrapped transaction
-	} else if (d[0] === multisigTransaction) {
-		var temp = serializeTransaction(entity['otherTrans']);
-		d[i++] = temp.length;
-		e += 4;
-		for (var j = 0; j < temp.length; ++j) {
-			b[e++] = temp[j];
-		}
-
-	// Aggregate Modification transaction
-	} else if (d[0] === multisigModification) {
+			return builder.endVector();
+		};
 
 
-		// Number of modifications
-		var temp = entity['modifications'];
-		temp.sort(function(a, b) {return a.cosignatoryAddress < b.cosignatoryAddress ? -1 : a.cosignatoryAddress > b.cosignatoryAddress;});
+		function date_format(num) {
+			return ( num < 10 ) ? '0' + num  : num;
+		};
 
-		d[i++] = temp.length;
-		e += 4;
-
-		for (var j = 0; j < temp.length; ++j) {
-			// Length of modification structure
-			d[i++] = 0x28;
-			e += 4;
-			// Modification type
-			if (temp[j]['modificationType'] == 1) {
-				d[i++] = 0x01;
-			} else {
-				d[i++] = 0x02;
-			}
-			e += 4;
-			// Length of public key
-			d[i++] = 0x20;
-			e += 4;
-
-			var key2bytes = hex2ua(entity['modifications'][j]['cosignatoryAccount']);
-
-			// Key to Bytes
-			for (var k = 0; k < key2bytes.length; ++k) {
-				b[e++] = key2bytes[k];
-			}
-			i = e / 4;
-		}
-
-		var entityVersion = d[1] & 0xffffff;
-		if (entityVersion >= 2) {
-			d[i++] = 0x04;
-			e += 4;
-			// Relative change
-			d[i++] = entity['minCosignatories']['relativeChange'].toString(16);
-			e += 4;
-		} else {
-			// Version 1 has no modifications
-		}
-
-	} else if (d[0] === importanceTransfer) {
-		d[i++] = entity['mode'];
-		e += 4;
-		d[i++] = 0x20;
-		e += 4;
-		var key2bytes = hex2ua(entity['remoteAccount']);
-
-		//Key to Bytes
-		for (var k = 0; k < key2bytes.length; ++k) {
-			b[e++] = key2bytes[k];
-		}
-	}
-
-	return new Uint8Array(r, 0, e);
-};
-
-var calculateMinimum = function calculateMinimum(numNem) {
-  var fee = Math.floor(Math.max(1, numNem / 10000));
-  return fee > 25 ? 25 : fee;
-};
-
-var mosaicIdToName = function mosaicIdToName(mosaicId) {
-	if (!mosaicId) return mosaicId;
-	return mosaicId.namespaceId + ":" + mosaicId.name;
-};
-
-var calculateXemEquivalent = function calculateXemEquivalent(multiplier, q, sup, divisibility) {
-	if (sup === 0) {
-	return 0;
-	}
-	// TODO: can this go out of JS (2^54) bounds? (possible BUG)
-	return 8999999999 * q * multiplier / sup / Math.pow(10, divisibility + 6);
-};
-
-
-var calculateMosaics = function calculateMosaics(multiplier, mosaics) {
-
-	var totalFee = 0;
-	var fee = 0;
-	var supplyRelatedAdjustment = 0;
-
-	for (var i = 0; i < mosaics.length; i++) {
-
-		var m = mosaics[i];
-		var mosaicName = mosaicIdToName(m.mosaicId);
-
-		var divisibility = m.divisibility;
-		var supply = m.supply; //
-		var quantity = m.quantity;
-
-		if (supply <= 10000 && divisibility === 0) {
-		  // Small business mosaic fee
-		  fee = currentFeeFactor;
-
-		} else {
-
-			var maxMosaicQuantity = 9000000000000000;
-			var totalMosaicQuantity = supply * Math.pow(10, divisibility);
-			supplyRelatedAdjustment = Math.floor(0.8 * Math.log(Math.floor(maxMosaicQuantity / totalMosaicQuantity)));
-			var numNem = calculateXemEquivalent(multiplier, quantity, supply, divisibility);
-			// Using Math.ceil below because xem equivalent returned is sometimes a bit lower than it should
-			// Ex: 150'000 of nem:xem gives 149999.99999999997
-			fee = calculateMinimum(Math.ceil(numNem));
-
-		}
-		totalFee += currentFeeFactor * Math.max(1, fee - supplyRelatedAdjustment);
-		console.log("sub:" + totalFee);
-	}
-
-	return totalFee;
-};
-
-var getFee = function(amount,message,mosaics){
-
-//	let msgFee = message.payload.length ? Math.max(1, Math.floor(message.payload.length / 2 / 16)) * 2 : 0;
-	let msgFee = message.payload.length ? 0.05*Math.max(1, Math.floor(message.payload.length / 2 / 32) + 1) : 0;
-	console.log("================");
-
-	console.log(msgFee);
-	let fee = mosaics ? calculateMosaics(amount,mosaics) : calculateMinimum(amount / 1000000) * currentFeeFactor;
-	console.log(calculateMinimum(amount / 1000000));
-
-	console.log(fee);
-	return  (msgFee + fee) * 1000000;
-
-}
-
-var getTimestamp = function(diff){
-	return Math.floor((Date.now() / 1000) - (NEM_EPOCH / 1000)) + diff;
-}
-
-var date_format = function(num) {
-	return ( num < 10 ) ? '0' + num  : num;
-};
-
-var dispTimeStamp = function(timeStamp){
+function dispTimeStamp(timeStamp){
 
 		var NEM_EPOCH = Date.UTC(2016, 3, 1, 0, 0, 0, 0);
 		var timestampNemesisBlock = 1459468800;
@@ -756,14 +244,42 @@ var dispTimeStamp = function(timeStamp){
 		return 	strDate;
 }
 
-var getVersion = function getVersion( network,val) {
-	if (network === 104) {
-		return 0x68000000 | val;
-	} else if (network === -104) {
-		return 0x98000000 | val;
+function dispPayload(payload,type){
+	var plain_text = "";
+	if(type == '1'){
+		plain_text = "[encrypted]";
+
+	}else if (payload && payload.length > 2 && payload[0] === 'f' && payload[1] === 'e') {
+		plain_text = "HEX:" + payload;
+		console.log("HEX: " + payload);
+	}else{
+		try {
+
+			plain_text = escape_html(decodeURIComponent( escape(convert.hexToUtf8(payload))));
+
+		} catch (e) {
+			console.log(e);
+			console.log('invalid text input: ' + payload);
+		}
 	}
-	return 0x60000000 | val;
-};
+	return plain_text;
+}
+
+function escape_html (string) {
+	if(typeof string !== 'string') {
+		return string;
+	}
+	return string.replace(/[&'`"<>]/g, function(match) { //'
+		return {
+			'&': '&amp;',
+			"'": '&#x27;',
+			'`': '&#x60;',
+			'"': '&quot;',
+			'<': '&lt;',
+			'>': '&gt;',
+		}[match]
+	});
+}
 
 function getNodes(){
 
@@ -780,15 +296,13 @@ function getNodes(){
 		},
 		function(res){
 			d.resolve(["13.114.200.132","40.90.163.78","52.194.207.217","40.90.163.32","47.107.245.217","18.228.92.190"]);
+//			d.resolve(["cow.48gh23s.xyz"]);
+//					d.resolve(["13.114.200.132","52.194.207.217","47.107.245.217"]);
 //			d.resolve(["alice2.nem.ninja","alice99.nem.ninja"]);
 		}
 	);
 	return d.promise();
 }
-
-
-
-
 
 function connectNodeToPost(nodes,query,txString){
 
@@ -800,6 +314,22 @@ function connectNodeToPost(nodes,query,txString){
 		data: txString  ,
 		error: function(XMLHttpRequest) {
 			console.log( $.parseJSON(XMLHttpRequest.responseText));
+		}
+	}
+	return connectNode2(nodes,query,obj);
+
+}
+
+function connectNodeToPut(nodes,query,txString){
+
+	setTargetNode(nodes);
+	var obj = {
+		url: "http://" + targetNode + query ,
+		type: 'PUT',
+		contentType:'application/json',
+		data: txString  ,
+		error: function(XMLHttpRequest) {
+			console.log( XMLHttpRequest.responseText);
 		}
 	}
 	return connectNode2(nodes,query,obj);
@@ -820,6 +350,8 @@ function setTargetNode(nodes){
 	}
 
 }
+
+
 function connectNode2(nodes,query,obj){
 
 
@@ -842,10 +374,10 @@ function connectNode2(nodes,query,obj){
 			}
 			targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":3000";
 			obj.url = "http://" + targetNode + query;
-			return connectNode2(nodes,query,obj)
-			.then(function(res){
-				d.resolve(res);
-			});
+//			return connectNode2(nodes,query,obj)
+//			.then(function(res){
+//				d.resolve(res);
+//			});
 		}
 	);
 	return d.promise();
@@ -885,4 +417,297 @@ var postNemSignedInfo = function(query,tx,signature){
 	.then(function(nodes){
 		return connectNodeToPost(nodes,query,txString);
 	});
+}
+
+var postNemInfo = function(query,payload){
+
+	let txString = JSON.stringify({payload});
+	return getNodes()
+	.then(function(nodes){
+		return connectNodeToPost(nodes,query,txString);
+	});
+}
+
+var putNemInfo = function(query,payload){
+
+	let txString = JSON.stringify({'payload':payload});
+	return getNodes()
+	.then(function(nodes){
+		return connectNodeToPut(nodes,query,txString);
+	});
+}
+
+function aggregateSerialize(transfer){
+
+	let xembook = require("/main.js");
+	var builder = xembook.getFlatbuffers();
+
+	console.log("transactions");
+	console.log(transfer.transactions);
+
+//	var builder = new flatbuffers.Builder(1);
+
+	// Create vectors
+
+//	const signatureVector = AggregateTransactionBuffer.createSignatureVector(builder, Array(...Array(64)).map(Number.prototype.valueOf, 0));
+	const signatureVector = createVector(builder, 1,Array(...Array(64)).map(Number.prototype.valueOf, 0),1,'addInt8');
+//	const signerVector = AggregateTransactionBuffer.createSignerVector(builder, Array(...Array(32)).map(Number.prototype.valueOf, 0));
+	const signerVector    = createVector(builder, 4,Array(...Array(32)).map(Number.prototype.valueOf, 0),4,'addInt8');
+//	const deadlineVector = AggregateTransactionBuffer.createDeadlineVector(builder, this.deadline);
+	const deadlineVector  = createVector(builder, 4,transfer.deadline         ,4,'addInt32');
+//	const feeVector = AggregateTransactionBuffer.createFeeVector(builder, this.fee);
+	const feeVector       = createVector(builder, 4,transfer.fee      ,4,'addInt32');
+
+//	const modificationsVector = AggregateTransactionBuffer.createTransactionsVector(builder, this.transactions);
+	let modifications = [];
+	for (let i = 0; i < transfer.transactions.length; ++i){
+		modifications = modifications.concat(transfer.transactions[i]);
+	}
+
+
+
+	const modificationsVector = createVector(builder,1,modifications,1,'addInt8')
+
+	console.log("modificationsVector");
+	console.log(modificationsVector);
+
+/*
+	AggregateTransactionBuffer.startAggregateTransactionBuffer(builder);
+	AggregateTransactionBuffer.addSize(builder, 120 + 4 + this.transactions.length);
+	AggregateTransactionBuffer.addSignature(builder, signatureVector);
+	AggregateTransactionBuffer.addSigner(builder, signerVector);
+	AggregateTransactionBuffer.addVersion(builder, this.version);
+	AggregateTransactionBuffer.addType(builder, this.type);
+	AggregateTransactionBuffer.addFee(builder, feeVector);
+	AggregateTransactionBuffer.addDeadline(builder, deadlineVector);
+	AggregateTransactionBuffer.addTransactionsSize(builder, 0 !== this.transactions.length ? this.transactions.length : 4294967296);
+	AggregateTransactionBuffer.addTransactions(builder, modificationsVector);
+*/
+	builder.startObject(9);
+	builder.addFieldInt32(0, 120 + 4  + modifications.length, 0);
+	builder.addFieldOffset(1, signatureVector, 0);
+	builder.addFieldOffset(2, signerVector, 0);
+	builder.addFieldInt16( 3, transfer.version, 0);
+	builder.addFieldInt16( 4, transfer.type, 0);
+	builder.addFieldOffset(5, feeVector, 0);
+	builder.addFieldOffset(6, deadlineVector, 0);//////
+	builder.addFieldInt32(7, 0 !== modifications.length ? modifications.length : 4294967296, 0);//////
+	builder.addFieldOffset(8, modificationsVector, 0);//////
+	const codedAggregate = builder.endObject();
+
+	// Calculate size
+	builder.finish(codedAggregate);
+	bytes = builder.asUint8Array();
+
+	let i = 0;
+	let resultBytes = [];
+	let buffer = Array.from(bytes);
+
+	console.log("size");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 4));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 4)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 4));i++;//uint('size'),
+
+
+	console.log("signature");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 1));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 1)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 1));i++;//array('signature')
+
+
+	console.log("signer");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 1));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 1)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 1));i++;//array('signer')
+
+
+	console.log("version");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 2));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 2)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 2));i++;//ushort('version')
+
+
+	console.log("type");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 2));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 2)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 2));i++;//ushort('type'),
+
+	console.log("fee");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 4));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 4)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 4));i++;//array('fee', TypeSize.INT),
+
+	console.log("deadline");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 4));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 4)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 4));i++;//array('deadline', TypeSize.INT)
+
+	console.log("transactionsSize");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 4));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 4)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 4));i++;//uint('transactionsSize'),
+
+
+	console.log("transactions");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 1));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 1)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 1));i++;//array('transactions')
+
+
+
+
+	return resultBytes;
+
+
+
+}
+function serialize(transfer){
+
+	let xembook = require("/main.js");
+	var builder = xembook.getFlatbuffers();
+
+	// Create message
+	const bytePayload = convert.hexToUint8(convert.utf8ToHex(transfer.message.payload));
+	const payload = createVector(builder, 1,bytePayload,1,'addInt8');
+
+	builder.startObject(2);
+	builder.addFieldInt8(0, transfer.message.type, 0);
+	builder.addFieldOffset(1, payload, 0);
+	const message = builder.endObject();
+
+	// Create mosaics
+	const mosaics = [];
+	transfer.mosaics.forEach(mosaic => {
+		const id     = createVector(builder, 4,mosaic.id    ,4,'addInt32');
+		const amount = createVector(builder, 4,mosaic.amount,4,'addInt32');
+		builder.startObject(2);
+		builder.addFieldOffset(0, id, 0);
+		builder.addFieldOffset(1, amount, 0);
+		mosaics.push(builder.endObject());
+	});
+
+	const feeVector       = createVector(builder, 4,transfer.fee      ,4,'addInt32');
+	const mosaicsVector   = createVector(builder, 4,mosaics           ,4,'addOffset');
+	const signerVector    = createVector(builder, 4,Array(...Array(32)).map(Number.prototype.valueOf, 0),4,'addInt8');
+	const deadlineVector  = createVector(builder, 4,transfer.deadline         ,4,'addInt32');
+	console.log("transfer.recipient");
+	console.log(transfer.recipient);
+	const recipientVector = createVector(builder, 1,stringToAddress(transfer.recipient),1,'addInt8');
+	const signatureVector = createVector(builder, 1,Array(...Array(64)).map(Number.prototype.valueOf, 0),1,'addInt8');
+
+	builder.startObject(12);
+	builder.addFieldInt32(0, 149 + (16 * transfer.mosaics.length) + bytePayload.length, 0);
+	builder.addFieldOffset(1, signatureVector, 0);
+	builder.addFieldOffset(2, signerVector, 0);
+	builder.addFieldInt16( 3, transfer.version, 0);
+	builder.addFieldInt16( 4, transfer.type, 0);
+	builder.addFieldOffset(5, feeVector, 0);
+	builder.addFieldOffset(6, deadlineVector, 0);//////
+	builder.addFieldOffset(7, recipientVector, 0);
+	builder.addFieldInt16( 8, bytePayload.length + 1, 0);
+	builder.addFieldInt8(  9, transfer.mosaics.length, 0);
+	builder.addFieldOffset(10, message, 0);
+	builder.addFieldOffset(11, mosaicsVector, 0);
+	const codedTransfer = builder.endObject();
+
+	builder.finish(codedTransfer);
+	bytes = builder.asUint8Array();
+
+
+	let i = 0;
+	let resultBytes = [];
+	let buffer = Array.from(bytes);
+	console.log("size");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 4));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 4)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 4));i++;//uint('size'),
+	console.log("signature");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 1));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 1)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 1));i++;//array('signature')
+
+	console.log("signer");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 1));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 1)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 1));i++;//array('signer')
+
+	console.log("version");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 2));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 2)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 2));i++;//ushort('version')
+
+	console.log("type");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 2));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 2)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 2));i++;//ushort('type'),
+
+	console.log("fee");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 4));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 4)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 4));i++;//array('fee', TypeSize.INT),
+
+	console.log("deadline");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 4));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 4)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 4));i++;//array('deadline', TypeSize.INT)
+
+
+	console.log("recipient");
+	console.log(findVector( buffer[0], 4 + (i * 2), buffer, 1));
+	console.log(convert.uint8ToHex(findVector( buffer[0], 4 + (i * 2), buffer, 1)));
+	resultBytes = resultBytes.concat(findVector(buffer[0], 4 + (i * 2), buffer, 1));i++;//array('recipient')
+
+	console.log("recipient");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 2));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 2)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 2));i++;//ushort('messageSize')
+
+	console.log("numMosaics");
+	console.log(findParam( buffer[0], 4 + (i * 2), buffer, 1));
+	console.log(convert.uint8ToHex(findParam( buffer[0], 4 + (i * 2), buffer, 1)));
+	resultBytes = resultBytes.concat(findParam( buffer[0], 4 + (i * 2), buffer, 1));i++;//ubyte('numMosaics')
+
+	console.log("message");
+	resultBytes = resultBytes.concat(tableSerialize(     buffer, 4 + (i * 2)));i++;//table('message', [ubyte('type'),array('payload')]),
+
+	console.log("mosaics");
+	resultBytes = resultBytes.concat(tableArraySerialize(buffer, 4 + (i * 2)));i++;//tableArray('mosaics', [array('id', TypeSize.INT),array('amount', TypeSize.INT)])
+
+	return resultBytes;
+}
+
+function signTransaction(keyPair,byteBuffer) {
+
+	const signingBytes = byteBuffer.slice(4 + 64 + 32);
+	//console.log(hashKey);
+	console.log(keyPair.privateKey);
+
+	const keyPairEncoded = KeyPair.createKeyPairFromPrivateKeyString(convert.uint8ToHex(keyPair.privateKey));
+	const signature = Array.from(catapult.crypto.sign( new Uint8Array(signingBytes),keyPair.publicKey, keyPair.privateKey,catapult.hash.createHasher()));
+	const signedTransactionBuffer = byteBuffer
+		.splice(0, 4)
+		.concat(signature)
+		.concat(Array.from(keyPairEncoded.publicKey))
+		.concat(byteBuffer.splice(64 + 32, byteBuffer.length));
+	const payload = convert.uint8ToHex(signedTransactionBuffer);
+
+	return {
+		payload,
+		hash: createTransactionHash(payload)
+	};
+}
+
+function toAggregateTransaction(resultBytes,_signer) {
+
+	resultBytes.splice(0, 4 + 64 + 32);// 0,100
+
+	resultBytes = Array.from(_signer).concat(resultBytes);
+	resultBytes.splice(32 + 2 + 2, 16); //deadlineと手数料を削る
+	console.log(convert.uint8ToHex(resultBytes))
+	return Array.from((new Uint8Array([
+		(resultBytes.length + 4 & 0x000000ff),
+		(resultBytes.length + 4 & 0x0000ff00) >> 8,
+		(resultBytes.length + 4 & 0x00ff0000) >> 16,
+		(resultBytes.length + 4 & 0xff000000) >> 24
+	]))).concat(resultBytes);
 }

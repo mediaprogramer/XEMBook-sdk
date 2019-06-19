@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>221_transfer</title>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.8.0/sha3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-joda/1.10.1/js-joda.min.js"></script>
+
+<script src="../extlib/coders/convert.js"></script>
+<script src="../extlib/crypto/nacl_catapult.js"></script>
+<script src="../extlib/crypto/keyPair.js"></script>
+<script src="../bundle.js"></script>
+<script src="../xembook2-sdk.js"></script>
+
+
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+<script>
+
+$(function(){
+
+	const randomBytesArray = nacl.randomBytes(32);
+//	const hashKey = convert.uint8ToHex(randomBytesArray); // TODO: derive private key correctly
+	const hashKey = "289D5C9F9CF2FA65DB8FAE30F0E1A4AAEFCFA62A1E17ABAA095C6796AE4170C6"; // TODO: derive private key correctly
+	const keyPair = KeyPair.createKeyPairFromPrivateKeyString(hashKey);
+//	const address = publicKeyToAddress(keyPair.publicKey, 0x90); //0x90 MIJIN_TEST
+	const address = "SCA7ZS2B7DEEBGU3THSILYHCRUR32YYE55ZBLYA2"; //0x90 MIJIN_TEST
+
+	$("#account_prikey").text(hashKey);
+	$("#account_pubkey").text(convert.uint8ToHex(keyPair.publicKey));
+	$("#account_address").text(address);
+
+	// 入力ダイアログを表示 ＋ 入力内容を user に代入
+	catapult_text = window.prompt("Catapultに刻むテキストを入力してください", "Hello! XEMBook-sdk");
+	const jsonTx = {
+	    "version": 0x9003,
+	    "type": 16724,
+	    "fee": [0, 0],
+		"deadline": deadline(),
+		"recipient": address,
+	    "message": {
+	        "type": 0,
+	        "payload": catapult_text
+	    },
+	    "mosaics": [
+			{
+				"id": [853116887, 2007078553],
+		        "amount": [0, 0]
+	    	}
+		]
+	}
+
+	var serializedTx = serialize(jsonTx);
+	serializedTx = toAggregateTransaction(serializedTx,keyPair.publicKey);
+
+	const jsonAggregateTx = {
+	    "version": 0x9002,
+	    "type": 0x4141,
+		"fee": [0, 0],
+		"deadline": deadline(),
+		"transactions": [serializedTx,serializedTx],
+	}
+
+	const aggregateSerializedTx = aggregateSerialize(jsonAggregateTx);
+	const signedTx = signTransaction(keyPair,aggregateSerializedTx);
+
+	var intervalCheckUnconfirmed;
+	putNemInfo("/transaction/",signedTx.payload)
+	.then(function(res){
+		console.log(res);
+
+		progress(count);
+		var $modal = $('.js-progress-bar');
+		var $bar = $modal.find('.progress-bar');
+		$modal.modal('show');
+
+		//監視開始
+		intervalCheckUnconfirmed = setInterval(function(){
+			getNemInfo("/transaction/" + signedTx.hash + "/status")
+			.then(function(res2){
+				parseTransactionStatus(res2);
+			})
+		}
+		,3000
+		);
+	});
+
+	//未承認トランザクションの解析
+
+	isTxConfirmed = false;
+	var parseTransactionStatus = function(res){
+
+		if(res.group == "confirmed"){
+
+			$("#confirmed_transaction").attr("href", "http://xembook.net/xembook-sdk/snapshot/20190526/examples/270_transaction.html?hash=" + signedTx.hash);
+			$("#confirmed_transaction").attr("target", "_blank" );
+
+			ticker = 50;
+			incr = 20;
+			isTxConfirmed = true;
+			clearInterval(intervalCheckUnconfirmed);
+//				getNemInfo("/transaction/" + signedTx.hash )
+//				.then(function(res){
+//
+//				})
+
+		}
+	};
+
+	var count = 0;
+	var ticker = 700;
+	var incr = 1;
+
+	//着金確認プログレスバー
+	function progress(count){
+		setTimeout(function(){
+			var $modal = $('.js-progress-bar');
+			count += incr;
+			if(count >= 90 && isTxConfirmed == false) {
+				count = 90;
+			}
+
+			if(isTxConfirmed) {
+
+				console.log("complete!");
+				//プログレスバー終了
+				$modal.find('.progress-bar').css({'width':'100%'});
+				setTimeout(function() {
+					$modal.modal('hide').delay(700).queue(
+						function(next) {
+							count = 0;
+							ticker = 700;
+							isTxConfirmed = false;
+							incr = 1;
+							$modal.find('.progress-bar').css({'width':'0%'});
+							next();
+						}
+					);
+				},1600);
+				return;
+			}
+
+			$modal.find('.progress-bar').css({'width':count+'%'});
+			progress(count);
+
+		},normRand(ticker, 50));
+	}
+
+	//ランダム正規分布(m=中央値,s=偏り)
+	var normRand = function (m, s) {
+		var a = 1 - Math.random();
+		var b = 1 - Math.random();
+		var c = Math.sqrt(-2 * Math.log(a));
+		if(0.5 - Math.random() > 0) {
+			return c * Math.sin(Math.PI * 2 * b) * s + m;
+		}else{
+			return c * Math.cos(Math.PI * 2 * b) * s + m;
+		}
+	};
+});
+
+</script>
+</head>
+<body>
+
+<h1>ジェネレーター</h1>
+<br>
+<div id="items-ctrl">
+	<ul>
+		<li>[PRIVATE_KEY]：<span id="account_prikey"></span></li>
+		<li>[PUBLICK_KEY]：<span id="account_pubkey"></span></li>
+		<li>[ADDRESS]：<span id="account_address"></span></li>
+	</ul>
+	<ul>
+		<li>[トランザクション結果]：<a id="confirmed_transaction" href="">結果を確認する</a></li>
+
+	</ul>
+</div>
+
+<div class="modal js-progress-bar">
+ <div class="modal-dialog">
+   <div class="modal-content">
+	 <div class="modal-body">
+	   <div class="progress progress-popup">
+		<div class="progress-bar progress-bar-striped active"></div>
+	   </div>
+		<div>トランザクション確認中</div>
+	 </div>
+   </div>
+ </div>
+</div>
+
+</body>
+</html>
