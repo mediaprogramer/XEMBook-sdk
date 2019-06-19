@@ -35,20 +35,20 @@ $(function(){
 	// 入力ダイアログを表示 ＋ 入力内容を user に代入
 	catapult_text = window.prompt("Catapultに刻むテキストを入力してください", "Hello! XEMBook-sdk");
 	const jsonTx = {
-	    "version": 0x9003,
-	    "type": 16724,
-	    "fee": [0, 0],
+		"version": 0x9003,
+		"type": 0x4154,
+		"fee": [0, 0],
 		"deadline": deadline(),
 		"recipient": address,
-	    "message": {
-	        "type": 0,
-	        "payload": catapult_text
-	    },
-	    "mosaics": [
+		"message": {
+			"type": 0,
+			"payload": catapult_text
+		},
+		"mosaics": [
 			{
 				"id": [853116887, 2007078553],
-		        "amount": [0, 0]
-	    	}
+				"amount": [0, 0]
+			}
 		]
 	}
 
@@ -56,8 +56,8 @@ $(function(){
 	serializedTx = toAggregateTransaction(serializedTx,keyPair.publicKey);
 
 	const jsonAggregateTx = {
-	    "version": 0x9002,
-	    "type": 0x4141,
+		"version": 0x9002,
+		"type": 0x4141,
 		"fee": [0, 0],
 		"deadline": deadline(),
 		"transactions": [serializedTx,serializedTx],
@@ -65,15 +65,18 @@ $(function(){
 
 	const aggregateSerializedTx = aggregateSerialize(jsonAggregateTx);
 	const signedTx = signTransaction(keyPair,aggregateSerializedTx);
+	console.log(signedTx.payload);
 
 	var intervalCheckUnconfirmed;
 	putNemInfo("/transaction/",signedTx.payload)
 	.then(function(res){
 		console.log(res);
+		isTxConfirmed = false;
 
-		progress(count);
+		progress(0,400);
 		var $modal = $('.js-progress-bar');
 		var $bar = $modal.find('.progress-bar');
+		$modal.find('.progress-bar').css({'width':'0%'});
 		$modal.modal('show');
 
 		//監視開始
@@ -94,56 +97,40 @@ $(function(){
 
 		if(res.group == "confirmed"){
 
-			$("#confirmed_transaction").attr("href", "http://xembook.net/xembook-sdk/snapshot/20190526/examples/270_transaction.html?hash=" + signedTx.hash);
-			$("#confirmed_transaction").attr("target", "_blank" );
 
-			ticker = 50;
-			incr = 20;
 			isTxConfirmed = true;
 			clearInterval(intervalCheckUnconfirmed);
-//				getNemInfo("/transaction/" + signedTx.hash )
-//				.then(function(res){
-//
-//				})
+				getNemInfo("/transaction/" + signedTx.hash )
+				.then(function(res2){
+					console.log(res2.meta.id);
+					$("#confirmed_transaction").attr("href", "http://" + targetIp + ":8000/#/aggregate/" + res2.meta.id);
+					$("#confirmed_transaction").attr("target", "_blank" );
 
+				})
 		}
 	};
 
-	var count = 0;
-	var ticker = 700;
-	var incr = 1;
-
 	//着金確認プログレスバー
-	function progress(count){
+	function progress(count,ticker){
 		setTimeout(function(){
 			var $modal = $('.js-progress-bar');
-			count += incr;
-			if(count >= 90 && isTxConfirmed == false) {
-				count = 90;
-			}
+
 
 			if(isTxConfirmed) {
 
-				console.log("complete!");
-				//プログレスバー終了
 				$modal.find('.progress-bar').css({'width':'100%'});
 				setTimeout(function() {
-					$modal.modal('hide').delay(700).queue(
-						function(next) {
-							count = 0;
-							ticker = 700;
-							isTxConfirmed = false;
-							incr = 1;
-							$modal.find('.progress-bar').css({'width':'0%'});
-							next();
-						}
-					);
-				},1600);
+					$modal.modal('hide');
+				},1400);
 				return;
+
+			}else if(count < 90){
+
+				count += 1;
 			}
 
 			$modal.find('.progress-bar').css({'width':count+'%'});
-			progress(count);
+			progress(count,ticker);
 
 		},normRand(ticker, 50));
 	}
@@ -180,16 +167,16 @@ $(function(){
 </div>
 
 <div class="modal js-progress-bar">
- <div class="modal-dialog">
-   <div class="modal-content">
-	 <div class="modal-body">
-	   <div class="progress progress-popup">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-body">
+	<div class="progress progress-popup">
 		<div class="progress-bar progress-bar-striped active"></div>
-	   </div>
-		<div>トランザクション確認中</div>
-	 </div>
-   </div>
- </div>
+	</div>
+	<div>トランザクション確認中</div>
+</div>
+</div>
+</div>
 </div>
 
 </body>

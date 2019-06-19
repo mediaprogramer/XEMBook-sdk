@@ -346,7 +346,8 @@ function connectNode(nodes,query){
 
 function setTargetNode(nodes){
 	if(targetNode == "" || isHashAccess){
-		targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":3000";
+		targetIp = nodes[Math.floor(Math.random() * nodes.length)];
+		targetNode = targetIp + ":3000";
 	}
 
 }
@@ -374,10 +375,10 @@ function connectNode2(nodes,query,obj){
 			}
 			targetNode = nodes[Math.floor(Math.random() * nodes.length)] + ":3000";
 			obj.url = "http://" + targetNode + query;
-//			return connectNode2(nodes,query,obj)
-//			.then(function(res){
-//				d.resolve(res);
-//			});
+			return connectNode2(nodes,query,obj)
+			.then(function(res){
+				d.resolve(res);
+			});
 		}
 	);
 	return d.promise();
