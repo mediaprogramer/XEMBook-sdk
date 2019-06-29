@@ -13,6 +13,7 @@
 <script>
 $(function(){
 
+	const LI = "<li>";
 	const txType = {
 		TRANSFER : "4154",	//済
 		REGISTER_NAMESPACE : "414E",	//済
@@ -37,12 +38,12 @@ $(function(){
 	btnSubmit.addEventListener( 'click', evt => {
 
 		var rawtx = $( '#rawtx' ).val();
-		analyzeTx(rawtx);	
+		analyzeTx(rawtx);
 
 	} );
 
 	function getValueFromArray(ar){
-		
+
 		var res = 0;
 		for(var i = 0; i < ar.length; i++){
 			res += ar[i] * Math.pow(256,i);
@@ -54,23 +55,23 @@ $(function(){
 	function getRawFromArray(ar){
 		return convert.uint8ToHex(new Uint8Array(ar));
 	}
-	
+
 	function analyzeTx(rawtx){
 
 		var div = $("#result");
-		var ul = $("<ul>").appendTo(div); 
+		var ul = $("<ul>").appendTo(div);
 
 		arrayTx = Array.from(convert.hexToUint8(rawtx));
 
 		var size      = arrayTx.splice(0,4);
 		var ul2 = buildUl(ul,"size");
-		$("<li>").append("raw: "   + getRawFromArray(size)).appendTo(ul2); 
-		$("<li>").append("array: " + size).appendTo(ul2); 
-		$("<li>").append("value: " + getValueFromArray(size)).appendTo(ul2); 
+		$(LI).append("raw: "   + getRawFromArray(size)).appendTo(ul2);
+		$(LI).append("array: " + size).appendTo(ul2);
+		$(LI).append("value: " + getValueFromArray(size)).appendTo(ul2);
 
 		var signature = arrayTx.splice(0,64);
 		var ul2 = buildUl(ul,"signature");
-		$("<li>").append("raw: " + getRawFromArray(signature)).appendTo(ul2); 
+		$(LI).append("raw: " + getRawFromArray(signature)).appendTo(ul2);
 
 		var res = analyzeSigning(arrayTx,ul);
 		var typeHex = res.typeHex;
@@ -83,10 +84,10 @@ $(function(){
 		var feeInt64 = [ feeLow,feeHeigh];
 		var feeValue = Number(uint64.compact([ feeLow,feeHeigh]));
 		var ul2 = buildUl(ul,"fee");
-		$("<li>").append("raw: " + feeRaw).appendTo(ul2); 
-		$("<li>").append("array: [" + fee + "]").appendTo(ul2); 
-		$("<li>").append("int64: [" + feeInt64 + "]").appendTo(ul2); 
-		$("<li>").append("value: " + feeValue).appendTo(ul2); 
+		$(LI).append("raw: " + feeRaw).appendTo(ul2);
+		$(LI).append("array: [" + fee + "]").appendTo(ul2);
+		$(LI).append("int64: [" + feeInt64 + "]").appendTo(ul2);
+		$(LI).append("value: " + feeValue).appendTo(ul2);
 
 		var deadline  = arrayTx.splice(0,8);
 		var deadlineRaw = getRawFromArray(deadline);
@@ -95,17 +96,17 @@ $(function(){
 		var deadlineInt64 =  [low,high];
 		var deadlineValue = uint64.compact(deadlineInt64);
 		var ul2 = buildUl(ul,"deadline");
-		$("<li>").append("raw: " + deadlineRaw).appendTo(ul2); 
-		$("<li>").append("array: [" + deadline + "]").appendTo(ul2); 
-		$("<li>").append("int64: [" + deadlineInt64 + "]").appendTo(ul2); 
-		$("<li>").append("value: " + deadlineValue).appendTo(ul2); 
-		$("<li>").append("date: " + dispTimeStamp(deadlineValue)).appendTo(ul2); 
+		$(LI).append("raw: " + deadlineRaw).appendTo(ul2);
+		$(LI).append("array: [" + deadline + "]").appendTo(ul2);
+		$(LI).append("int64: [" + deadlineInt64 + "]").appendTo(ul2);
+		$(LI).append("value: " + deadlineValue).appendTo(ul2);
+		$(LI).append("date: " + dispTimeStamp(deadlineValue)).appendTo(ul2);
 //		apendRaw(ul,deadline);
 
 		if(typeHex == txType.TRANSFER){					arrayTx = analyzeTransfer(arrayTx,ul);
 		}else if(typeHex == txType.MOSAIC_DEFINITION){    arrayTx = analyzeMosaicDefinition(arrayTx,ul);
 		}else if(typeHex == txType.MOSAIC_SUPPLY_CHANGE){ arrayTx = analyzeMosaicSupplyChange(arrayTx,ul);
-		}else if(typeHex == txType.LOCK){ 
+		}else if(typeHex == txType.LOCK){
 
 			arrayTx = analyzeMosaic(arrayTx,ul);
 
@@ -116,21 +117,21 @@ $(function(){
 			var durationInt64 = [ durationLow,durationHeigh];
 			var durationValue = Number(uint64.compact([ durationLow,durationHeigh]));
 			var childUl = buildUl(ul,"duration");
-			$("<li>").append("raw: " + durationRaw).appendTo(childUl); 
-			$("<li>").append("array: [" + duration + "]").appendTo(childUl); 
-			$("<li>").append("int64: [" + durationInt64 + "]").appendTo(childUl); 
-			$("<li>").append("value: " + durationValue).appendTo(childUl); 
+			$(LI).append("raw: " + durationRaw).appendTo(childUl);
+			$(LI).append("array: [" + duration + "]").appendTo(childUl);
+			$(LI).append("int64: [" + durationInt64 + "]").appendTo(childUl);
+			$(LI).append("value: " + durationValue).appendTo(childUl);
 
 			var hash    = arrayTx.splice(0,32);
 			var ul2 = buildUl(ul,"hash");
-			$("<li>").append("raw: " + getRawFromArray(hash)).appendTo(ul2); 
+			$(LI).append("raw: " + getRawFromArray(hash)).appendTo(ul2);
 
-		}else if(typeHex == txType.REGISTER_NAMESPACE){ 
+		}else if(typeHex == txType.REGISTER_NAMESPACE){
 
 			var namespaceType = arrayTx.splice(0,1);
 			var childUl = buildUl(ul,"namespace_type");
-			$("<li>").append("raw: "   + getRawFromArray(namespaceType)  ).appendTo(childUl); 
-			$("<li>").append("value: "   + getValueFromArray(namespaceType)  ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(namespaceType)  ).appendTo(childUl);
+			$(LI).append("value: "   + getValueFromArray(namespaceType)  ).appendTo(childUl);
 
 			var duration       = arrayTx.splice(0,8);
 			var durationRaw = getRawFromArray(duration);
@@ -139,61 +140,61 @@ $(function(){
 			var durationInt64 = [ durationLow,durationHeigh];
 			var durationValue = Number(uint64.compact([ durationLow,durationHeigh]));
 			var childUl = buildUl(ul,"duration");
-			$("<li>").append("raw: " + durationRaw).appendTo(childUl); 
-			$("<li>").append("array: [" + duration + "]").appendTo(childUl); 
-			$("<li>").append("int64: [" + durationInt64 + "]").appendTo(childUl); 
-			$("<li>").append("value: " + durationValue).appendTo(childUl); 
+			$(LI).append("raw: " + durationRaw).appendTo(childUl);
+			$(LI).append("array: [" + duration + "]").appendTo(childUl);
+			$(LI).append("int64: [" + durationInt64 + "]").appendTo(childUl);
+			$(LI).append("value: " + durationValue).appendTo(childUl);
 
 			var namespaceId = arrayTx.splice(0,8);
 			var childUl = buildUl(ul,"namespace_id");
-			$("<li>").append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
 
 			var namespaceNameLength      = arrayTx.splice(0,1);
 			var namespaceNameLengthValue = getValueFromArray(namespaceNameLength);
 			var ul2 = buildUl(ul,"namespace_name_length");
-			$("<li>").append("raw: "   + getRawFromArray(namespaceNameLength)).appendTo(ul2); 
-			$("<li>").append("value: " + namespaceNameLengthValue).appendTo(ul2); 
+			$(LI).append("raw: "   + getRawFromArray(namespaceNameLength)).appendTo(ul2);
+			$(LI).append("value: " + namespaceNameLengthValue).appendTo(ul2);
 
 			namespaseName = arrayTx.splice(0,namespaceNameLengthValue );
 			namespaseNameRaw = getRawFromArray(namespaseName);
 
 			childUl = buildUl(ul,"namespace_name");
-			$("<li>").append("raw: "   + getRawFromArray(namespaseName) ).appendTo(childUl); 
-			$("<li>").append("value: "   + dispPayload(namespaseNameRaw,0) ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(namespaseName) ).appendTo(childUl);
+			$(LI).append("value: "   + dispPayload(namespaseNameRaw,0) ).appendTo(childUl);
 
-		}else if(typeHex == txType.ADDRESS_ALIAS){ 
+		}else if(typeHex == txType.ADDRESS_ALIAS){
 
 			var actionType = arrayTx.splice(0,1);
 			var childUl = buildUl(ul,"action_type");
-			$("<li>").append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl); 
-			$("<li>").append("value: " + getValueFromArray(actionType)  ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
+			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
 
 			var namespaceId = arrayTx.splice(0,8);
 			var childUl = buildUl(ul,"namespace_id");
-			$("<li>").append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
 
 			var recipient = arrayTx.splice(0,25);
 			var recipientRaw = getRawFromArray(recipient);
 			var childUl = buildUl(ul,"recipient");
-			$("<li>").append("raw: "   + recipientRaw  ).appendTo(childUl); 
+			$(LI).append("raw: "   + recipientRaw  ).appendTo(childUl);
 
 
-		}else if(typeHex == txType.MOSAIC_ALIAS){ 
+		}else if(typeHex == txType.MOSAIC_ALIAS){
 
 			var actionType = arrayTx.splice(0,1);
 			var childUl = buildUl(ul,"action_type");
-			$("<li>").append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl); 
-			$("<li>").append("value: " + getValueFromArray(actionType)  ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
+			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
 
 			var namespaceId = arrayTx.splice(0,8);
 			var childUl = buildUl(ul,"namespace_id");
-			$("<li>").append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
 
 			var mosaicId = arrayTx.splice(0,8);
 			var childUl = buildUl(ul,"mosaic_id");
-			$("<li>").append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl);
 
-		}else if(typeHex == txType.SECRET_LOCK){ 
+		}else if(typeHex == txType.SECRET_LOCK){
 
 			arrayTx = analyzeMosaic(arrayTx,ul);
 
@@ -204,53 +205,53 @@ $(function(){
 			var durationInt64 = [ durationLow,durationHeigh];
 			var durationValue = Number(uint64.compact([ durationLow,durationHeigh]));
 			var childUl = buildUl(ul,"duration");
-			$("<li>").append("raw: " + durationRaw).appendTo(childUl); 
-			$("<li>").append("array: [" + duration + "]").appendTo(childUl); 
-			$("<li>").append("int64: [" + durationInt64 + "]").appendTo(childUl); 
-			$("<li>").append("value: " + durationValue).appendTo(childUl); 
+			$(LI).append("raw: " + durationRaw).appendTo(childUl);
+			$(LI).append("array: [" + duration + "]").appendTo(childUl);
+			$(LI).append("int64: [" + durationInt64 + "]").appendTo(childUl);
+			$(LI).append("value: " + durationValue).appendTo(childUl);
 
 			var hashAlgorithm = arrayTx.splice(0,1);
 			var childUl = buildUl(ul,"hash_algorithm");
-			$("<li>").append("raw: "   + getRawFromArray(hashAlgorithm)  ).appendTo(childUl); 
-			$("<li>").append("value: "   + getValueFromArray(hashAlgorithm)  ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(hashAlgorithm)  ).appendTo(childUl);
+			$(LI).append("value: "   + getValueFromArray(hashAlgorithm)  ).appendTo(childUl);
 
 			var secret    = arrayTx.splice(0,32);
 			var ul2 = buildUl(ul,"secret");
-			$("<li>").append("raw: " + getRawFromArray(secret)).appendTo(ul2); 
+			$(LI).append("raw: " + getRawFromArray(secret)).appendTo(ul2);
 
 			recipient = arrayTx.splice(0,25);
 			var recipientRaw = getRawFromArray(recipient);
 			childUl = buildUl(ul,"recipient");
-			$("<li>").append("raw: "   + recipientRaw  ).appendTo(childUl); 
+			$(LI).append("raw: "   + recipientRaw  ).appendTo(childUl);
 
-		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ADDRESS){ 
+		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ADDRESS){
 
 			var propertyType = arrayTx.splice(0,1);
 			var childUl = buildUl(ul,"property_type");
-			$("<li>").append("raw: "   + getRawFromArray(propertyType)  ).appendTo(childUl); 
-			$("<li>").append("value: "   + getValueFromArray(propertyType)  ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(propertyType)  ).appendTo(childUl);
+			$(LI).append("value: "   + getValueFromArray(propertyType)  ).appendTo(childUl);
 
 			var modificationCount = arrayTx.splice(0,1);
 			var modificationCountValue = getValueFromArray(modificationCount);
 			var childUl = buildUl(ul,"modification_count");
-			$("<li>").append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl); 
-			$("<li>").append("value: "   + modificationCountValue  ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
+			$(LI).append("value: "   + modificationCountValue  ).appendTo(childUl);
 
 			for(var i = 0; i < modificationCountValue; i++){
 
-				$("<li>").append(i).appendTo(childUl); 
-				var indexUl = $("<ul>").appendTo(childUl); 
+				$(LI).append(i).appendTo(childUl);
+				var indexUl = $("<ul>").appendTo(childUl);
 
 				var modificationType = arrayTx.splice(0,1);
 				var modiUl = buildUl(indexUl,"modification_type");
-				$("<li>").append("raw: "   + getRawFromArray(modificationType)  ).appendTo(modiUl); 
-				$("<li>").append("value: "   + getValueFromArray(modificationType)  ).appendTo(modiUl); 
+				$(LI).append("raw: "   + getRawFromArray(modificationType)  ).appendTo(modiUl);
+				$(LI).append("value: "   + getValueFromArray(modificationType)  ).appendTo(modiUl);
 
 
 				address = arrayTx.splice(0,25);
 				var recipientRaw = getRawFromArray(address);
 				var modiUl = buildUl(indexUl,"address");
-				$("<li>").append("raw: "   + recipientRaw  ).appendTo(modiUl); 
+				$(LI).append("raw: "   + recipientRaw  ).appendTo(modiUl);
 
 			}
 
@@ -259,9 +260,9 @@ $(function(){
 
 			var size  = arrayTx.splice(0,4);
 			ul2 = buildUl(ul,"size");
-			$("<li>").append("raw: " + getRawFromArray(size)).appendTo(ul2); 
-			$("<li>").append("array: [" + size + "]").appendTo(ul2); 
-			$("<li>").append("value: " + getValueFromArray(size)).appendTo(ul2); 
+			$(LI).append("raw: " + getRawFromArray(size)).appendTo(ul2);
+			$(LI).append("array: [" + size + "]").appendTo(ul2);
+			$(LI).append("value: " + getValueFromArray(size)).appendTo(ul2);
 
 			while(arrayTx.length > 0){
 
@@ -271,9 +272,9 @@ $(function(){
 				//size
 				var size = arrayTx.splice(0,4);
 				var ul3 = buildUl(ul2,"size");
-				$("<li>").append("raw: "   + getRawFromArray(size)).appendTo(ul3); 
-				$("<li>").append("array: " + size).appendTo(ul3); 
-				$("<li>").append("value: " + getValueFromArray(size)).appendTo(ul3); 
+				$(LI).append("raw: "   + getRawFromArray(size)).appendTo(ul3);
+				$(LI).append("array: " + size).appendTo(ul3);
+				$(LI).append("value: " + getValueFromArray(size)).appendTo(ul3);
 
 				var res = analyzeSigning(arrayTx,ul2); //signer version type
 				var typeHex = res.typeHex;
@@ -292,12 +293,12 @@ $(function(){
 
 		var mosaicId = arrayTx.splice(0,8);
 		var ul = buildUl(parentUl,"mosaic_id");
-		$("<li>").append("raw: "   + getRawFromArray(mosaicId) ).appendTo(ul); 
+		$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(ul);
 
 		var direction = arrayTx.splice(0,1);
 		var ul = buildUl(parentUl,"direction");
-		$("<li>").append("raw: "   + getRawFromArray(direction)  ).appendTo(ul); 
-		$("<li>").append("value: "   + getValueFromArray(direction)  ).appendTo(ul); 
+		$(LI).append("raw: "   + getRawFromArray(direction)  ).appendTo(ul);
+		$(LI).append("value: "   + getValueFromArray(direction)  ).appendTo(ul);
 
 		var delta      = arrayTx.splice(0,8);
 		var deltaRaw   = getRawFromArray(delta);
@@ -307,10 +308,10 @@ $(function(){
 		var deltaValue = Number(uint64.compact([ deltaLow,deltaHeigh]));
 
 		var ul = buildUl(parentUl,"delta");
-		$("<li>").append("raw: " + deltaRaw).appendTo(ul); 
-		$("<li>").append("array: [" + delta + "]").appendTo(ul); 
-		$("<li>").append("int64: [" + deltaInt64 + "]").appendTo(ul); 
-		$("<li>").append("value: " + deltaValue).appendTo(ul); 
+		$(LI).append("raw: " + deltaRaw).appendTo(ul);
+		$(LI).append("array: [" + delta + "]").appendTo(ul);
+		$(LI).append("int64: [" + deltaInt64 + "]").appendTo(ul);
+		$(LI).append("value: " + deltaValue).appendTo(ul);
 
 		return arrayTx;
 	}
@@ -319,32 +320,32 @@ $(function(){
 
 		var nonse  = arrayTx.splice(0,4);
 		var childUl = buildUl(ul,"nonse");
-		$("<li>").append("raw: " + getRawFromArray(nonse)).appendTo(childUl); 
+		$(LI).append("raw: " + getRawFromArray(nonse)).appendTo(childUl);
 
 		var mosaicId = arrayTx.splice(0,8);
 		var childUl = buildUl(ul,"mosaic_id");
-		$("<li>").append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl); 
+		$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl);
 
 		var durationProvided = arrayTx.splice(0,1);
 		var childUl = buildUl(ul,"duration_provided");
-		$("<li>").append("raw: "   + getRawFromArray(durationProvided)  ).appendTo(childUl); 
-		$("<li>").append("value: "   + getValueFromArray(durationProvided)  ).appendTo(childUl); 
+		$(LI).append("raw: "   + getRawFromArray(durationProvided)  ).appendTo(childUl);
+		$(LI).append("value: "   + getValueFromArray(durationProvided)  ).appendTo(childUl);
 
 		var flags = arrayTx.splice(0,1);
 		var childUl = buildUl(ul,"flags");
-		$("<li>").append("raw: "   + getRawFromArray(flags)  ).appendTo(childUl); 
-		$("<li>").append("value: "   + getValueFromArray(flags)  ).appendTo(childUl); 
+		$(LI).append("raw: "   + getRawFromArray(flags)  ).appendTo(childUl);
+		$(LI).append("value: "   + getValueFromArray(flags)  ).appendTo(childUl);
 
 		var divisibirity = arrayTx.splice(0,1);
 		var childUl = buildUl(ul,"divisibirity");
-		$("<li>").append("raw: "   + getRawFromArray(divisibirity)  ).appendTo(childUl); 
-		$("<li>").append("value: "   + getValueFromArray(divisibirity)  ).appendTo(childUl); 
+		$(LI).append("raw: "   + getRawFromArray(divisibirity)  ).appendTo(childUl);
+		$(LI).append("value: "   + getValueFromArray(divisibirity)  ).appendTo(childUl);
 
 		if(durationProvided == 1){
 			var indicateDuration = arrayTx.splice(0,1);
 			var childUl = buildUl(ul,"indicate_duration");
-			$("<li>").append("raw: "   + getRawFromArray(indicateDuration)  ).appendTo(childUl); 
-			$("<li>").append("value: "   + getValueFromArray(indicateDuration)  ).appendTo(childUl); 
+			$(LI).append("raw: "   + getRawFromArray(indicateDuration)  ).appendTo(childUl);
+			$(LI).append("value: "   + getValueFromArray(indicateDuration)  ).appendTo(childUl);
 
 			var duration       = arrayTx.splice(0,8);
 			var durationRaw = getRawFromArray(duration);
@@ -353,10 +354,10 @@ $(function(){
 			var durationInt64 = [ durationLow,durationHeigh];
 			var durationValue = Number(uint64.compact([ durationLow,durationHeigh]));
 			var childUl = buildUl(ul,"duration");
-			$("<li>").append("raw: " + durationRaw).appendTo(childUl); 
-			$("<li>").append("array: [" + duration + "]").appendTo(childUl); 
-			$("<li>").append("int64: [" + durationInt64 + "]").appendTo(childUl); 
-			$("<li>").append("value: " + durationValue).appendTo(childUl); 
+			$(LI).append("raw: " + durationRaw).appendTo(childUl);
+			$(LI).append("array: [" + duration + "]").appendTo(childUl);
+			$(LI).append("int64: [" + durationInt64 + "]").appendTo(childUl);
+			$(LI).append("value: " + durationValue).appendTo(childUl);
 		}
 		return arrayTx;
 
@@ -367,26 +368,26 @@ $(function(){
 
 		var signer    = arrayTx.splice(0,32);
 		var ul2 = buildUl(ul,"signer");
-		$("<li>").append("raw: " + getRawFromArray(signer)).appendTo(ul2); 
+		$(LI).append("raw: " + getRawFromArray(signer)).appendTo(ul2);
 
 		//version
 		var version   = arrayTx.splice(0,2);
 		var versionRaw = getRawFromArray(version)
 		var versionHex = versionRaw.substr(2,2) + versionRaw.substr(0,2);
 		var ul2 = buildUl(ul,"version");
-		$("<li>").append("raw: " + versionRaw).appendTo(ul2); 
-		$("<li>").append("hex: 0x" + versionHex).appendTo(ul2); 
-		$("<li>").append("value: " + getValueFromArray(version) ).appendTo(ul2); 
+		$(LI).append("raw: " + versionRaw).appendTo(ul2);
+		$(LI).append("hex: 0x" + versionHex).appendTo(ul2);
+		$(LI).append("value: " + getValueFromArray(version) ).appendTo(ul2);
 
 		//type
 		var type      = arrayTx.splice(0,2);
 		var typeRaw = getRawFromArray(type);
 		var typeHex = typeRaw.substr(2,2) + typeRaw.substr(0,2);
 		var ul2 = buildUl(ul,"type");
-		$("<li>").append("raw: " + typeRaw).appendTo(ul2); 
-		$("<li>").append("array: " + type).appendTo(ul2); 
-		$("<li>").append("hex: 0x" + typeHex).appendTo(ul2); 
-		$("<li>").append("value: " + getValueFromArray(type)).appendTo(ul2); 
+		$(LI).append("raw: " + typeRaw).appendTo(ul2);
+		$(LI).append("array: " + type).appendTo(ul2);
+		$(LI).append("hex: 0x" + typeHex).appendTo(ul2);
+		$(LI).append("value: " + getValueFromArray(type)).appendTo(ul2);
 
 		return {typeHex:typeHex,arrayUnAnalyzed:arrayTx};
 	}
@@ -397,54 +398,54 @@ $(function(){
 		recipient = arrayTx.splice(0,25);
 		var recipientRaw = getRawFromArray(recipient);
 		childUl = buildUl(ul,"recipient");
-		$("<li>").append("raw: "   + recipientRaw  ).appendTo(childUl); 
+		$(LI).append("raw: "   + recipientRaw  ).appendTo(childUl);
 
 		messageSize = arrayTx.splice(0,2);
 		messageSizeValue = getValueFromArray(messageSize) ;
 		childUl = buildUl(ul,"message_size");
-		$("<li>").append("raw: "   + getRawFromArray(messageSize)  ).appendTo(childUl); 
-		$("<li>").append("value: "   +  messageSizeValue).appendTo(childUl); 
+		$(LI).append("raw: "   + getRawFromArray(messageSize)  ).appendTo(childUl);
+		$(LI).append("value: "   +  messageSizeValue).appendTo(childUl);
 
 		mosaicNumber = arrayTx.splice(0,1);
 		var mosaicNumberValue = getValueFromArray(mosaicNumber);
 		childUl = buildUl(ul,"mosaic_number");
-		$("<li>").append("raw: "   + getRawFromArray(mosaicNumber)  ).appendTo(childUl); 
-		$("<li>").append("value: "   + getValueFromArray(mosaicNumber)  ).appendTo(childUl); 
+		$(LI).append("raw: "   + getRawFromArray(mosaicNumber)  ).appendTo(childUl);
+		$(LI).append("value: "   + getValueFromArray(mosaicNumber)  ).appendTo(childUl);
 
 		messageType = arrayTx.splice(0,1);
 		childUl = buildUl(ul,"message_type");
-		$("<li>").append("raw: "   + getRawFromArray(messageType)  ).appendTo(childUl); 
-		$("<li>").append("value: "   + getValueFromArray(messageType)  ).appendTo(childUl); 
+		$(LI).append("raw: "   + getRawFromArray(messageType)  ).appendTo(childUl);
+		$(LI).append("value: "   + getValueFromArray(messageType)  ).appendTo(childUl);
 
 		message = arrayTx.splice(0,messageSizeValue - 1);
 		messageRaw = getRawFromArray(message);
 		childUl = buildUl(ul,"message");
-		$("<li>").append("raw: "   + messageRaw ).appendTo(childUl); 
-		$("<li>").append("value: "   + dispPayload(messageRaw,0) ).appendTo(childUl); 
+		$(LI).append("raw: "   + messageRaw ).appendTo(childUl);
+		$(LI).append("value: "   + dispPayload(messageRaw,0) ).appendTo(childUl);
 
-		$("<li>").append("mosaics").appendTo(ul); 
-		childUl = $("<ul>").appendTo(ul); 
+		$(LI).append("mosaics").appendTo(ul);
+		childUl = $("<ul>").appendTo(ul);
 
 		for(var i = 0; i < mosaicNumberValue; i++){
 
-			$("<li>").append(i).appendTo(childUl); 
-			var indexUl = $("<ul>").appendTo(childUl); 
+			$(LI).append(i).appendTo(childUl);
+			var indexUl = $("<ul>").appendTo(childUl);
 			arrayTx = analyzeMosaic(arrayTx,indexUl);
 		}
 		return arrayTx;
 
 	}
-	
+
 	function analyzeMosaic(arrayTx,ul){
 
 
 		mosaicId = arrayTx.splice(0,8);
 		childUl = buildUl(ul,"mosaic_id");
-		$("<li>").append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl); 
+		$("<li>").append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl);
 
 //		mosaicAmount = arrayTx.splice(0,8);
 //		childUl = buildUl(ul,"mosaic_amount");
-//		$("<li>").append("raw: "   + getRawFromArray(mosaicAmount) ).appendTo(childUl); 
+//		$("<li>").append("raw: "   + getRawFromArray(mosaicAmount) ).appendTo(childUl);
 
 
 		var mosaicAmount       = arrayTx.splice(0,8);
@@ -454,10 +455,10 @@ $(function(){
 		var mosaicAmountInt64 = [ mosaicAmountLow,mosaicAmountHeigh];
 		var mosaicAmountValue = Number(uint64.compact([ mosaicAmountLow,mosaicAmountHeigh]));
 		var childUl = buildUl(ul,"mosaic_amount");
-		$("<li>").append("raw: " + mosaicAmountRaw).appendTo(childUl); 
-		$("<li>").append("array: [" + mosaicAmount + "]").appendTo(childUl); 
-		$("<li>").append("int64: [" + mosaicAmountInt64 + "]").appendTo(childUl); 
-		$("<li>").append("value: " + mosaicAmountValue).appendTo(childUl); 
+		$(LI).append("raw: " + mosaicAmountRaw).appendTo(childUl);
+		$(LI).append("array: [" + mosaicAmount + "]").appendTo(childUl);
+		$(LI).append("int64: [" + mosaicAmountInt64 + "]").appendTo(childUl);
+		$(LI).append("value: " + mosaicAmountValue).appendTo(childUl);
 
 
 		return arrayTx;
@@ -466,68 +467,10 @@ $(function(){
 
 	function buildUl(ul,item){
 
-		$("<li>").append(item).appendTo(ul); 
-		var childUl = $("<ul>").appendTo(ul); 
+		$(LI).append(item).appendTo(ul); 
+		var childUl = $("<ul>").appendTo(ul);
 		return childUl;
 	}
-
-/*
-size:C0000000
-C0000000
-5C010000
-5C010000
-
-signature:
-46D0B4EB4677D2FCEA0D5242E9E8368ED49293B13F6C61A3DEADE0746835B69F9F3F9B6927A42D0C4A063357FE9DA21B75A43064D6CC99904C153832BF820607
-FD779D1D31E30D0D80346F0DDD1F946B52BFF3FCF9D582F96AAE642810BCCC663C99C1AEC0CA1118C751928B925A9D9DBF6AB4DA5B3861DE6C5793F5E73F700F
-FD779D1D31E30D0D80346F0DDD1F946B52BFF3FCF9D582F96AAE642810BCCC663C99C1AEC0CA1118C751928B925A9D9DBF6AB4DA5B3861DE6C5793F5E73F700F
-
-signer:
-FF6E61F2A0440FB09CA7A530C0C64A275ADA3A13F60D1EC916D7F1543D7F0574
-FF6E61F2A0440FB09CA7A530C0C64A275ADA3A13F60D1EC916D7F1543D7F0574
-FF6E61F2A0440FB09CA7A530C0C64A275ADA3A13F60D1EC916D7F1543D7F0574
-
-02904141
-0000000000000000
-
-
-
-02904141
-0000000000000000
-47CA8B9F17000000
-47CA8B9F17000000
-E0000000
-
-
-70000000
-FF6E61F2A0440FB09CA7A530C0C64A275ADA3A13F60D1EC916D7F1543D7F0574
-03905441
-9081FCCB41F8C8409A9B99E485E0E28D23BD6304EF7215E01A
-1C00
-0100
-E697A5E69CACE8AA9EE381A7E38282E5A4A7E4B888E5A4ABE38082
-D787D9329996A1770000000000000000
-
-
-
-70000000FF6E61F2A0440FB09CA7A530C0C64A275ADA3A13F60D1EC916D7F1543D7F0574039054419081FCCB41F8C8409A9B99E485E0E28D23BD6304EF7215E01A1C000100E697A5E69CACE8AA9EE381A7E38282E5A4A7E4B888E5A4ABE38082D787D9329996A1770000000000000000
-
-
-v:0390
-t:5441
-f:0000000000000000
-d:FB1B5A1017000000
-re:90758EB47C28D6143BAA3DE6A8D9C319B503A1BFD8E789E9E2
-re:908194BF5478C8CCA72CC6C42A2606BE3E960EA9F8A26F45D3
-msize:0C00
-monum:0200
-message:48656C6C6F204E656D3221
-mosaics:
-44B262C46CEABB850000000000000000
-1C29E1B7B29912940000000000000000
-*/
-
-//const flags = (params.supplyMutable ? 1 : 0) + (params.transferable ? 2 : 0);
 
 });
 	</script>
