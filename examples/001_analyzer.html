@@ -128,10 +128,11 @@ $(function(){
 
 		}else if(typeHex == txType.REGISTER_NAMESPACE){
 
-			var namespaceType = arrayTx.splice(0,1);
-			var childUl = buildUl(ul,"namespace_type");
-			$(LI).append("raw: "   + getRawFromArray(namespaceType)  ).appendTo(childUl);
-			$(LI).append("value: "   + getValueFromArray(namespaceType)  ).appendTo(childUl);
+			arrayTx = appendType(arrayTx,ul,"namespace_type");
+//			var namespaceType = arrayTx.splice(0,1);
+//			var childUl = buildUl(ul,"namespace_type");
+//			$(LI).append("raw: "   + getRawFromArray(namespaceType)  ).appendTo(childUl);
+//			$(LI).append("value: "   + getValueFromArray(namespaceType)  ).appendTo(childUl);
 
 			var duration       = arrayTx.splice(0,8);
 			var durationRaw = getRawFromArray(duration);
@@ -164,10 +165,12 @@ $(function(){
 
 		}else if(typeHex == txType.ADDRESS_ALIAS){
 
-			var actionType = arrayTx.splice(0,1);
-			var childUl = buildUl(ul,"action_type");
-			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
-			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
+			arrayTx = appendType(arrayTx,ul,"action_type");
+
+//			var actionType = arrayTx.splice(0,1);
+//			var childUl = buildUl(ul,"action_type");
+//			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
+//			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
 
 			var namespaceId = arrayTx.splice(0,8);
 			var childUl = buildUl(ul,"namespace_id");
@@ -181,10 +184,11 @@ $(function(){
 
 		}else if(typeHex == txType.MOSAIC_ALIAS){
 
-			var actionType = arrayTx.splice(0,1);
-			var childUl = buildUl(ul,"action_type");
-			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
-			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
+			arrayTx = appendType(arrayTx,ul,"action_type");
+//			var actionType = arrayTx.splice(0,1);
+//			var childUl = buildUl(ul,"action_type");
+//			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
+//			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
 
 			var namespaceId = arrayTx.splice(0,8);
 			var childUl = buildUl(ul,"namespace_id");
@@ -210,10 +214,12 @@ $(function(){
 			$(LI).append("int64: [" + durationInt64 + "]").appendTo(childUl);
 			$(LI).append("value: " + durationValue).appendTo(childUl);
 
-			var hashAlgorithm = arrayTx.splice(0,1);
-			var childUl = buildUl(ul,"hash_algorithm");
-			$(LI).append("raw: "   + getRawFromArray(hashAlgorithm)  ).appendTo(childUl);
-			$(LI).append("value: "   + getValueFromArray(hashAlgorithm)  ).appendTo(childUl);
+			arrayTx = appendType(arrayTx,ul,"hash_algorithm");
+
+//			var hashAlgorithm = arrayTx.splice(0,1);
+//			var childUl = buildUl(ul,"hash_algorithm");
+//			$(LI).append("raw: "   + getRawFromArray(hashAlgorithm)  ).appendTo(childUl);
+//			$(LI).append("value: "   + getValueFromArray(hashAlgorithm)  ).appendTo(childUl);
 
 			var secret    = arrayTx.splice(0,32);
 			var ul2 = buildUl(ul,"secret");
@@ -226,10 +232,12 @@ $(function(){
 
 		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ADDRESS){
 
-			var propertyType = arrayTx.splice(0,1);
-			var childUl = buildUl(ul,"property_type");
-			$(LI).append("raw: "   + getRawFromArray(propertyType)  ).appendTo(childUl);
-			$(LI).append("value: "   + getValueFromArray(propertyType)  ).appendTo(childUl);
+
+			arrayTx = appendType(arrayTx,ul,"property_type");
+//			var propertyType = arrayTx.splice(0,1);
+//			var childUl = buildUl(ul,"property_type");
+//			$(LI).append("raw: "   + getRawFromArray(propertyType)  ).appendTo(childUl);
+//			$(LI).append("value: "   + getValueFromArray(propertyType)  ).appendTo(childUl);
 
 			var modificationCount = arrayTx.splice(0,1);
 			var modificationCountValue = getValueFromArray(modificationCount);
@@ -242,10 +250,12 @@ $(function(){
 				$(LI).append(i).appendTo(childUl);
 				var indexUl = $("<ul>").appendTo(childUl);
 
-				var modificationType = arrayTx.splice(0,1);
-				var modiUl = buildUl(indexUl,"modification_type");
-				$(LI).append("raw: "   + getRawFromArray(modificationType)  ).appendTo(modiUl);
-				$(LI).append("value: "   + getValueFromArray(modificationType)  ).appendTo(modiUl);
+
+				arrayTx = appendType(arrayTx,indexUl,"modification_type");
+//				var modificationType = arrayTx.splice(0,1);
+//				var modiUl = buildUl(indexUl,"modification_type");
+//				$(LI).append("raw: "   + getRawFromArray(modificationType)  ).appendTo(modiUl);
+//				$(LI).append("value: "   + getValueFromArray(modificationType)  ).appendTo(modiUl);
 
 
 				address = arrayTx.splice(0,25);
@@ -288,6 +298,13 @@ $(function(){
 		}
 	}
 
+	function appendType(arrayTx,parentUl,type_name){
+		var type = arrayTx.splice(0,1);
+		var ul = buildUl(parentUl,type_name);
+		$(LI).append("raw: "   + getRawFromArray(  type)).appendTo(ul);
+		$(LI).append("value: " + getValueFromArray(type)).appendTo(ul);
+		return arrayTx;
+	}
 
 	function analyzeMosaicSupplyChange(arrayTx,parentUl){
 
@@ -467,7 +484,7 @@ $(function(){
 
 	function buildUl(ul,item){
 
-		$(LI).append(item).appendTo(ul); 
+		$(LI).append(item).appendTo(ul);
 		var childUl = $("<ul>").appendTo(ul);
 		return childUl;
 	}
