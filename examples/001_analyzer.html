@@ -146,9 +146,11 @@ $(function(){
 			$(LI).append("int64: [" + durationInt64 + "]").appendTo(childUl);
 			$(LI).append("value: " + durationValue).appendTo(childUl);
 
-			var namespaceId = arrayTx.splice(0,8);
-			var childUl = buildUl(ul,"namespace_id");
-			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
+			arrayTx = appendId(arrayTx,ul,"namespace_id");
+
+//			var namespaceId = arrayTx.splice(0,8);
+//			var childUl = buildUl(ul,"namespace_id");
+//			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
 
 			var namespaceNameLength      = arrayTx.splice(0,1);
 			var namespaceNameLengthValue = getValueFromArray(namespaceNameLength);
@@ -172,9 +174,11 @@ $(function(){
 //			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
 //			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
 
-			var namespaceId = arrayTx.splice(0,8);
-			var childUl = buildUl(ul,"namespace_id");
-			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
+			arrayTx = appendId(arrayTx,ul,"namespace_id");
+
+//			var namespaceId = arrayTx.splice(0,8);
+//			var childUl = buildUl(ul,"namespace_id");
+//			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
 
 			var recipient = arrayTx.splice(0,25);
 			var recipientRaw = getRawFromArray(recipient);
@@ -190,13 +194,15 @@ $(function(){
 //			$(LI).append("raw: "   + getRawFromArray(actionType)  ).appendTo(childUl);
 //			$(LI).append("value: " + getValueFromArray(actionType)  ).appendTo(childUl);
 
-			var namespaceId = arrayTx.splice(0,8);
-			var childUl = buildUl(ul,"namespace_id");
-			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
+			arrayTx = appendId(arrayTx,ul,"namespace_id");
+//			var namespaceId = arrayTx.splice(0,8);
+//			var childUl = buildUl(ul,"namespace_id");
+//			$(LI).append("raw: "   + getRawFromArray(namespaceId) ).appendTo(childUl);
 
-			var mosaicId = arrayTx.splice(0,8);
-			var childUl = buildUl(ul,"mosaic_id");
-			$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl);
+			arrayTx = appendId(arrayTx,ul,"mosaic_id");
+//			var mosaicId = arrayTx.splice(0,8);
+//			var childUl = buildUl(ul,"mosaic_id");
+//			$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl);
 
 		}else if(typeHex == txType.SECRET_LOCK){
 
@@ -305,17 +311,29 @@ $(function(){
 		$(LI).append("value: " + getValueFromArray(type)).appendTo(ul);
 		return arrayTx;
 	}
+	function appendId(arrayTx,parentUl,id_name){
+		var id = arrayTx.splice(0,8);
+		var ul = buildUl(parentUl,id_name);
+		$(LI).append("raw: "   + getRawFromArray(id) ).appendTo(ul);
+		return arrayTx;
+
+	}
+
 
 	function analyzeMosaicSupplyChange(arrayTx,parentUl){
 
-		var mosaicId = arrayTx.splice(0,8);
-		var ul = buildUl(parentUl,"mosaic_id");
-		$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(ul);
+		arrayTx = appendId(arrayTx,ul,"mosaic_id");
 
-		var direction = arrayTx.splice(0,1);
-		var ul = buildUl(parentUl,"direction");
-		$(LI).append("raw: "   + getRawFromArray(direction)  ).appendTo(ul);
-		$(LI).append("value: "   + getValueFromArray(direction)  ).appendTo(ul);
+//		var mosaicId = arrayTx.splice(0,8);
+//		var ul = buildUl(parentUl,"mosaic_id");
+//		$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(ul);
+
+
+		arrayTx = appendType(arrayTx,ul,"direction");
+//		var direction = arrayTx.splice(0,1);
+//		var ul = buildUl(parentUl,"direction");
+//		$(LI).append("raw: "   + getRawFromArray(direction)  ).appendTo(ul);
+//		$(LI).append("value: "   + getValueFromArray(direction)  ).appendTo(ul);
 
 		var delta      = arrayTx.splice(0,8);
 		var deltaRaw   = getRawFromArray(delta);
@@ -339,19 +357,23 @@ $(function(){
 		var childUl = buildUl(ul,"nonse");
 		$(LI).append("raw: " + getRawFromArray(nonse)).appendTo(childUl);
 
-		var mosaicId = arrayTx.splice(0,8);
-		var childUl = buildUl(ul,"mosaic_id");
-		$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl);
 
-		var durationProvided = arrayTx.splice(0,1);
-		var childUl = buildUl(ul,"duration_provided");
-		$(LI).append("raw: "   + getRawFromArray(durationProvided)  ).appendTo(childUl);
-		$(LI).append("value: "   + getValueFromArray(durationProvided)  ).appendTo(childUl);
+		arrayTx = appendId(arrayTx,ul,"mosaic_id");
+//		var mosaicId = arrayTx.splice(0,8);
+//		var childUl = buildUl(ul,"mosaic_id");
+//		$(LI).append("raw: "   + getRawFromArray(mosaicId) ).appendTo(childUl);
 
-		var flags = arrayTx.splice(0,1);
-		var childUl = buildUl(ul,"flags");
-		$(LI).append("raw: "   + getRawFromArray(flags)  ).appendTo(childUl);
-		$(LI).append("value: "   + getValueFromArray(flags)  ).appendTo(childUl);
+		arrayTx = appendType(arrayTx,ul,"duration_provided");
+//		var durationProvided = arrayTx.splice(0,1);
+//		var childUl = buildUl(ul,"duration_provided");
+//		$(LI).append("raw: "   + getRawFromArray(durationProvided)  ).appendTo(childUl);
+//		$(LI).append("value: "   + getValueFromArray(durationProvided)  ).appendTo(childUl);
+
+		arrayTx = appendType(arrayTx,ul,"flags");
+//		var flags = arrayTx.splice(0,1);
+//		var childUl = buildUl(ul,"flags");
+//		$(LI).append("raw: "   + getRawFromArray(flags)  ).appendTo(childUl);
+//		$(LI).append("value: "   + getValueFromArray(flags)  ).appendTo(childUl);
 
 		var divisibirity = arrayTx.splice(0,1);
 		var childUl = buildUl(ul,"divisibirity");
@@ -359,10 +381,13 @@ $(function(){
 		$(LI).append("value: "   + getValueFromArray(divisibirity)  ).appendTo(childUl);
 
 		if(durationProvided == 1){
-			var indicateDuration = arrayTx.splice(0,1);
-			var childUl = buildUl(ul,"indicate_duration");
-			$(LI).append("raw: "   + getRawFromArray(indicateDuration)  ).appendTo(childUl);
-			$(LI).append("value: "   + getValueFromArray(indicateDuration)  ).appendTo(childUl);
+
+			arrayTx = appendType(arrayTx,ul,"indicate_duration");
+
+//			var indicateDuration = arrayTx.splice(0,1);
+//			var childUl = buildUl(ul,"indicate_duration");
+//			$(LI).append("raw: "   + getRawFromArray(indicateDuration)  ).appendTo(childUl);
+//			$(LI).append("value: "   + getValueFromArray(indicateDuration)  ).appendTo(childUl);
 
 			var duration       = arrayTx.splice(0,8);
 			var durationRaw = getRawFromArray(duration);
@@ -429,10 +454,12 @@ $(function(){
 		$(LI).append("raw: "   + getRawFromArray(mosaicNumber)  ).appendTo(childUl);
 		$(LI).append("value: "   + getValueFromArray(mosaicNumber)  ).appendTo(childUl);
 
-		messageType = arrayTx.splice(0,1);
-		childUl = buildUl(ul,"message_type");
-		$(LI).append("raw: "   + getRawFromArray(messageType)  ).appendTo(childUl);
-		$(LI).append("value: "   + getValueFromArray(messageType)  ).appendTo(childUl);
+		arrayTx = appendType(arrayTx,ul,"message_type");
+
+//		messageType = arrayTx.splice(0,1);
+//		childUl = buildUl(ul,"message_type");
+//		$(LI).append("raw: "   + getRawFromArray(messageType)  ).appendTo(childUl);
+//		$(LI).append("value: "   + getValueFromArray(messageType)  ).appendTo(childUl);
 
 		message = arrayTx.splice(0,messageSizeValue - 1);
 		messageRaw = getRawFromArray(message);
