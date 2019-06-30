@@ -331,9 +331,9 @@ $(function(){
 
 		var int64       = arrayTx.splice(0,8);
 		var int64Raw = getRawFromArray(int64);
-		var int64Low   = getValueFromArray(duration.slice(0,4));
-		var int64Heigh = getValueFromArray(duration.slice(4,8));
-		var int64Array = [ durationLow,durationHeigh];
+		var int64Low   = getValueFromArray(int64.slice(0,4));
+		var int64Heigh = getValueFromArray(int64.slice(4,8));
+		var int64Array = [ int64Low,int64Heigh];
 		var int64Value = Number(uint64.compact([ int64Low,int64Heigh]));
 		var ul = buildUl(parentUl,int64_name);
 		$(LI).append("raw: " + int64Raw).appendTo(ul);
