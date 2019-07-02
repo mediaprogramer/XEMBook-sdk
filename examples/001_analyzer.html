@@ -28,7 +28,7 @@ $(function(){
 		SECRET_LOCK : "4152",	//済
 		SECRET_PROOF : "4252",	//not yet
 		MODIFY_ACCOUNT_PROPERTY_ADDRESS : "4150",	//済
-		MODIFY_ACCOUNT_PROPERTY_MOSAIC : "4250",
+		MODIFY_ACCOUNT_PROPERTY_MOSAIC : "4250",	//済
 		MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE : "4350",
 		LINK_ACCOUNT : "414C"
 	}
@@ -180,6 +180,29 @@ $(function(){
 				var recipientRaw = getRawFromArray(address);
 				var modiUl = buildUl(indexUl,"address");
 				$(LI).append("raw: "   + recipientRaw  ).appendTo(modiUl);
+			}
+
+		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_MOSAIC){
+
+
+			arrayTx = appendType(arrayTx,ul,"property_type");
+
+			var modificationCount = arrayTx.splice(0,1);
+			var modificationCountValue = getValueFromArray(modificationCount);
+			var childUl = buildUl(ul,"modification_count");
+			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
+			$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
+
+			for(var i = 0; i < modificationCountValue; i++){
+
+				$(LI).append(i).appendTo(childUl);
+				var indexUl = $("<ul>").appendTo(childUl);
+
+				arrayTx = appendType(arrayTx,indexUl,"modification_type");
+				arrayTx = appendId(   arrayTx,indexUl,"mosaic_id");
+//				var recipientRaw = getRawFromArray(address);
+//				var modiUl = buildUl(indexUl,"mosaic");
+//				$(LI).append("raw: "   + recipientRaw  ).appendTo(modiUl);
 			}
 
 		}else if(typeHex == txType.AGGREGATE_COMPLETE || typeHex == txType.AGGREGATE_BONDED){		//アグリゲートコンプリート
