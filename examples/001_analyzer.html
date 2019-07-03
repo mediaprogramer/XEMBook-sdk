@@ -29,8 +29,8 @@ $(function(){
 		SECRET_PROOF : "4252",	//not yet
 		MODIFY_ACCOUNT_PROPERTY_ADDRESS : "4150",	//済
 		MODIFY_ACCOUNT_PROPERTY_MOSAIC : "4250",	//済
-		MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE : "4350",
-		LINK_ACCOUNT : "414C"
+		MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE : "4350",	//済
+		LINK_ACCOUNT : "414C"	//済
 	}
 
 
@@ -169,6 +169,9 @@ $(function(){
 			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
 			$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
 
+			$(LI).append("modifications").appendTo(ul);
+			childUl = $("<ul>").appendTo(ul);
+
 			for(var i = 0; i < modificationCountValue; i++){
 
 				$(LI).append(i).appendTo(childUl);
@@ -193,6 +196,9 @@ $(function(){
 			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
 			$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
 
+			$(LI).append("modifications").appendTo(ul);
+			childUl = $("<ul>").appendTo(ul);
+
 			for(var i = 0; i < modificationCountValue; i++){
 
 				$(LI).append(i).appendTo(childUl);
@@ -204,6 +210,82 @@ $(function(){
 //				var modiUl = buildUl(indexUl,"mosaic");
 //				$(LI).append("raw: "   + recipientRaw  ).appendTo(modiUl);
 			}
+
+		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE){
+
+			arrayTx = appendType(arrayTx,ul,"property_type");
+			var modificationCount = arrayTx.splice(0,1);
+			var modificationCountValue = getValueFromArray(modificationCount);
+			var childUl = buildUl(ul,"modification_count");
+			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
+			$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
+
+			$(LI).append("modifications").appendTo(ul);
+			childUl = $("<ul>").appendTo(ul);
+
+			for(var i = 0; i < modificationCountValue; i++){
+
+				$(LI).append(i).appendTo(childUl);
+				var indexUl = $("<ul>").appendTo(childUl);
+
+				arrayTx = appendType(arrayTx,indexUl,"modification_type");
+
+				var entityType   = arrayTx.splice(0,2);
+				var entityTypeRaw = getRawFromArray(entityType)
+				var entityTypeHex = entityTypeRaw.substr(2,2) + entityTypeRaw.substr(0,2);
+				var modiUl = buildUl(indexUl,"entity_type");
+				$(LI).append("raw: " + entityTypeRaw).appendTo(modiUl);
+				$(LI).append("hex: 0x" + entityTypeHex).appendTo(modiUl);
+				$(LI).append("value: " + getValueFromArray(entityType) ).appendTo(modiUl);
+
+			}
+		}else if(typeHex == txType.LINK_ACCOUNT){
+
+			var publicKey = arrayTx.splice(0,32);
+			var ul2 = buildUl(ul,"public_key");
+			$(LI).append("raw: " + getRawFromArray(publicKey)).appendTo(ul2);
+
+			arrayTx = appendType(arrayTx,ul,"link_action");
+
+		}else if(typeHex == txType.MODIFY_MULTISIG_ACCOUNT){
+
+			var minRemovalDelta      = arrayTx.splice(0,1);
+			var minRemovalDeltaValue = getValueFromArray(minRemovalDelta);
+			var ul2 = buildUl(ul,"min_removal_delta");
+			$(LI).append("raw: "   + getRawFromArray(minRemovalDelta)).appendTo(ul2);
+			$(LI).append("value: " + minRemovalDeltaValue).appendTo(ul2);
+
+			var minApprovalDelta      = arrayTx.splice(0,1);
+			var minApprovalDeltaValue = getValueFromArray(minApprovalDelta);
+			var ul2 = buildUl(ul,"min_approval_delta");
+			$(LI).append("raw: "   + getRawFromArray(minApprovalDelta)).appendTo(ul2);
+			$(LI).append("value: " + minApprovalDeltaValue).appendTo(ul2);
+
+
+			var modificationCount = arrayTx.splice(0,1);
+			var modificationCountValue = getValueFromArray(modificationCount);
+			var childUl = buildUl(ul,"modification_count");
+			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
+			$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
+
+			$(LI).append("modifications").appendTo(ul);
+			childUl = $("<ul>").appendTo(ul);
+
+			for(var i = 0; i < modificationCountValue; i++){
+
+				$(LI).append(i).appendTo(childUl);
+				var indexUl = $("<ul>").appendTo(childUl);
+
+				arrayTx = appendType(arrayTx,indexUl,"modification_type");
+
+				cosignatoryPublicKey = arrayTx.splice(0,32);
+				var cosignatoryPublicKeyRaw = getRawFromArray(cosignatoryPublicKey);
+				var modiUl = buildUl(indexUl,"cosignatory_publickey");
+				$(LI).append("raw: "   + cosignatoryPublicKeyRaw  ).appendTo(modiUl);
+			}
+
+
+
 
 		}else if(typeHex == txType.AGGREGATE_COMPLETE || typeHex == txType.AGGREGATE_BONDED){		//アグリゲートコンプリート
 
