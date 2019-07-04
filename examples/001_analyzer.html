@@ -21,7 +21,7 @@ $(function(){
 		MOSAIC_ALIAS : "434E",	//済
 		MOSAIC_DEFINITION : "414D",	//済
 		MOSAIC_SUPPLY_CHANGE : "424D",	//済
-		MODIFY_MULTISIG_ACCOUNT : "4155",	//済
+		MODIFY_MULTISIG_ACCOUNT : "4155",
 		AGGREGATE_COMPLETE : "4141",	//済
 		AGGREGATE_BONDED : "4241",	//済
 		LOCK : "4148",		//済
@@ -29,9 +29,10 @@ $(function(){
 		SECRET_PROOF : "4252",	//not yet
 		MODIFY_ACCOUNT_PROPERTY_ADDRESS : "4150",	//済
 		MODIFY_ACCOUNT_PROPERTY_MOSAIC : "4250",	//済
-		MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE : "4350",	//済
-		LINK_ACCOUNT : "414C"	//済
+		MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE : "4350",
+		LINK_ACCOUNT : "414C"
 	}
+
 
 	const btnSubmit = document.querySelector( '#btnSubmit' );
 	btnSubmit.addEventListener( 'click', evt => {
@@ -58,6 +59,7 @@ $(function(){
 	function analyzeTx(rawtx){
 
 		var div = $("#result");
+		div.empty();
 		var ul = $("<ul>").appendTo(div);
 
 		arrayTx = Array.from(convert.hexToUint8(rawtx));
@@ -68,7 +70,9 @@ $(function(){
 		$(LI).append("array: " + size).appendTo(ul2);
 		$(LI).append("value: " + getValueFromArray(size)).appendTo(ul2);
 
-		arrayTx = appendRaw(arrayTx,ul,"signature",64);
+		var signature = arrayTx.splice(0,64);
+		var ul2 = buildUl(ul,"signature");
+		$(LI).append("raw: " + getRawFromArray(signature)).appendTo(ul2);
 
 		var res = analyzeSigning(arrayTx,ul);
 		var typeHex = res.typeHex;
@@ -88,20 +92,119 @@ $(function(){
 		$(LI).append("int64: [" + deadlineInt64 + "]").appendTo(ul2);
 		$(LI).append("value: " + deadlineValue).appendTo(ul2);
 		$(LI).append("date: " + dispTimeStamp(deadlineValue)).appendTo(ul2);
+//		apendRaw(ul,deadline);
 
 		if(typeHex       == txType.TRANSFER){					arrayTx = analyzeTransfer(arrayTx,ul);
 		}else if(typeHex == txType.MOSAIC_DEFINITION){    arrayTx = analyzeMosaicDefinition(arrayTx,ul);
 		}else if(typeHex == txType.MOSAIC_SUPPLY_CHANGE){ arrayTx = analyzeMosaicSupplyChange(arrayTx,ul);
-		}else if(typeHex == txType.LOCK){	arrayTx = analyzeLock(arrayTx,ul);
-		}else if(typeHex == txType.REGISTER_NAMESPACE){		arrayTx = analyzeRegisterNamespace(arrayTx,ul);
-		}else if(typeHex == txType.ADDRESS_ALIAS){			arrayTx = analyzeAddressAlias(arrayTx,ul);
-		}else if(typeHex == txType.MOSAIC_ALIAS){			arrayTx = analyzeMosaicAlias(arrayTx,ul);
-		}else if(typeHex == txType.SECRET_LOCK){			arrayTx = analyzeSecretLock(arrayTx,ul);
-		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ADDRESS){			arrayTx = analyzeModifyAccountPropertyAddress(arrayTx,ul);
-		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_MOSAIC){			arrayTx = analyzeModifyAccountPropertyMosaic(arrayTx,ul);
-		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE){			arrayTx = analyzeModifyAccountPropertyEntityType(arrayTx,ul);
-		}else if(typeHex == txType.LINK_ACCOUNT){			arrayTx = analyzeLinkAccount(arrayTx,ul);
-		}else if(typeHex == txType.MODIFY_MULTISIG_ACCOUNT){			arrayTx = analyzeModifyMultisigAccount(arrayTx,ul);
+		}else if(typeHex == txType.LOCK){
+
+//			arrayTx = analyzeMosaic(arrayTx,ul);
+			arrayTx = appendId(arrayTx,ul,"mosaic_id");
+			arrayTx = appendInt64(arrayTx,ul,"duration");
+
+			var hash    = arrayTx.splice(0,32);
+			var ul2 = buildUl(ul,"hash");
+			$(LI).append("raw: " + getRawFromArray(hash)).appendTo(ul2);
+
+		}else if(typeHex == txType.REGISTER_NAMESPACE){
+
+			arrayTx = appendType(  arrayTx,ul,"namespace_type");
+			arrayTx = appendInt64( arrayTx,ul,"duration");
+			arrayTx = appendId(    arrayTx,ul,"namespace_id");
+			arrayTx = appendNumber(arrayTx,ul,"namespace_name_length");
+
+			var namespaceNameLength      = arrayTx.splice(0,1);
+			var namespaceNameLengthValue = getValueFromArray(namespaceNameLength);
+			var ul2 = buildUl(ul,"namespace_name_length");
+			$(LI).append("raw: "   + getRawFromArray(namespaceNameLength)).appendTo(ul2);
+			$(LI).append("value: " + namespaceNameLengthValue).appendTo(ul2);
+
+			namespaseName = arrayTx.splice(0,namespaceNameLengthValue );
+			namespaseNameRaw = getRawFromArray(namespaseName);
+
+			childUl = buildUl(ul,"namespace_name");
+			$(LI).append("raw: "   + getRawFromArray(namespaseName) ).appendTo(childUl);
+			$(LI).append("value: "   + dispPayload(namespaseNameRaw,0) ).appendTo(childUl);
+
+		}else if(typeHex == txType.ADDRESS_ALIAS){
+
+			arrayTx = appendType(arrayTx,ul,"action_type");
+			arrayTx = appendId(  arrayTx,ul,"namespace_id");
+
+			var recipient = arrayTx.splice(0,25);
+			var recipientRaw = getRawFromArray(recipient);
+			var childUl = buildUl(ul,"recipient");
+			$(LI).append("raw: "   + recipientRaw  ).appendTo(childUl);
+
+
+		}else if(typeHex == txType.MOSAIC_ALIAS){
+
+			arrayTx = appendType(arrayTx,ul,"action_type");
+			arrayTx = appendId(  arrayTx,ul,"namespace_id");
+			arrayTx = appendId(  arrayTx,ul,"mosaic_id");
+
+		}else if(typeHex == txType.SECRET_LOCK){
+
+//			arrayTx = analyzeMosaic(arrayTx,ul);
+			arrayTx = appendId(   arrayTx,ul,"mosaic_id");
+			arrayTx = appendInt64(arrayTx,ul,"duration");
+			arrayTx = appendType( arrayTx,ul,"hash_algorithm");
+
+			var secret    = arrayTx.splice(0,32);
+			var ul2 = buildUl(ul,"secret");
+			$(LI).append("raw: " + getRawFromArray(secret)).appendTo(ul2);
+
+			recipient = arrayTx.splice(0,25);
+			var recipientRaw = getRawFromArray(recipient);
+			childUl = buildUl(ul,"recipient");
+			$(LI).append("raw: "   + recipientRaw  ).appendTo(childUl);
+
+		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ADDRESS){
+
+			arrayTx = appendType(arrayTx,ul,"property_type");
+
+			var modificationCount = arrayTx.splice(0,1);
+			var modificationCountValue = getValueFromArray(modificationCount);
+			var childUl = buildUl(ul,"modification_count");
+			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
+			$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
+
+			for(var i = 0; i < modificationCountValue; i++){
+
+				$(LI).append(i).appendTo(childUl);
+				var indexUl = $("<ul>").appendTo(childUl);
+
+				arrayTx = appendType(arrayTx,indexUl,"modification_type");
+
+				address = arrayTx.splice(0,25);
+				var recipientRaw = getRawFromArray(address);
+				var modiUl = buildUl(indexUl,"address");
+				$(LI).append("raw: "   + recipientRaw  ).appendTo(modiUl);
+			}
+
+		}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_MOSAIC){
+
+
+			arrayTx = appendType(arrayTx,ul,"property_type");
+
+			var modificationCount = arrayTx.splice(0,1);
+			var modificationCountValue = getValueFromArray(modificationCount);
+			var childUl = buildUl(ul,"modification_count");
+			$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
+			$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
+
+			for(var i = 0; i < modificationCountValue; i++){
+
+				$(LI).append(i).appendTo(childUl);
+				var indexUl = $("<ul>").appendTo(childUl);
+
+				arrayTx = appendType(arrayTx,indexUl,"modification_type");
+				arrayTx = appendId(   arrayTx,indexUl,"mosaic_id");
+//				var recipientRaw = getRawFromArray(address);
+//				var modiUl = buildUl(indexUl,"mosaic");
+//				$(LI).append("raw: "   + recipientRaw  ).appendTo(modiUl);
+			}
 
 		}else if(typeHex == txType.AGGREGATE_COMPLETE || typeHex == txType.AGGREGATE_BONDED){		//アグリゲートコンプリート
 
@@ -127,25 +230,51 @@ $(function(){
 				var typeHex = res.typeHex;
 				arrayTx = res.arrayUnAnalyzed;
 
-				if(typeHex == txType.TRANSFER){					  				arrayTx = analyzeTransfer(arrayTx,ul2);				//トランスファー
-				}else if(typeHex == txType.MOSAIC_DEFINITION   ){ 				arrayTx = analyzeMosaicDefinition(arrayTx,ul2);				//モザイク定義
-				}else if(typeHex == txType.MOSAIC_SUPPLY_CHANGE){ 				arrayTx = analyzeMosaicSupplyChange(arrayTx,ul2);
-				}else if(typeHex == txType.LOCK){								arrayTx = analyzeLock(arrayTx,ul2);
-				}else if(typeHex == txType.REGISTER_NAMESPACE){					arrayTx = analyzeRegisterNamespace(arrayTx,ul2);
-				}else if(typeHex == txType.ADDRESS_ALIAS){						arrayTx = analyzeAddressAlias(arrayTx,ul2);
-				}else if(typeHex == txType.MOSAIC_ALIAS){						arrayTx = analyzeMosaicAlias(arrayTx,ul2);
-				}else if(typeHex == txType.SECRET_LOCK){						arrayTx = analyzeSecretLock(arrayTx,ul2);
-				}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ADDRESS){	arrayTx = analyzeModifyAccountPropertyAddress(arrayTx,ul2);
-				}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_MOSAIC){		arrayTx = analyzeModifyAccountPropertyMosaic(arrayTx,ul2);
-				}else if(typeHex == txType.MODIFY_ACCOUNT_PROPERTY_ENTITY_TYPE){arrayTx = analyzeModifyAccountPropertyEntityType(arrayTx,ul2);
-				}else if(typeHex == txType.LINK_ACCOUNT){						arrayTx = analyzeLinkAccount(arrayTx,ul2);
-				}else if(typeHex == txType.MODIFY_MULTISIG_ACCOUNT){			arrayTx = analyzeModifyMultisigAccount(arrayTx,ul2);
+				if(typeHex == txType.TRANSFER){					  arrayTx = analyzeTransfer(arrayTx,ul2);				//トランスファー
+				}else if(typeHex == txType.MOSAIC_DEFINITION   ){ arrayTx = analyzeMosaicDefinition(arrayTx,ul2);				//モザイク定義
+				}else if(typeHex == txType.MOSAIC_SUPPLY_CHANGE){ arrayTx = analyzeMosaicSupplyChange(arrayTx,ul2);
 				}
-
 			}//while
 		}
 	}
 
+	function appendType(arrayTx,parentUl,type_name){
+		var type = arrayTx.splice(0,1);
+		var ul = buildUl(parentUl,type_name);
+		$(LI).append("raw: "   + getRawFromArray(  type)).appendTo(ul);
+		$(LI).append("value: " + getValueFromArray(type)).appendTo(ul);
+		return arrayTx;
+	}
+
+	function appendId(arrayTx,parentUl,id_name){
+		var id = arrayTx.splice(0,8);
+		var idLow   = getValueFromArray(id.slice(0,4));
+		var idHeigh = getValueFromArray(id.slice(4,8));
+		var idArray = [ idLow,idHeigh];
+
+		var ul = buildUl(parentUl,id_name);
+		$(LI).append("raw: "   + getRawFromArray(id) ).appendTo(ul);
+		$(LI).append("array: [" + idArray + "]").appendTo(ul);
+
+		return arrayTx;
+	}
+
+	function appendInt64(arrayTx,parentUl,int64_name){
+
+		var int64       = arrayTx.splice(0,8);
+		var int64Raw = getRawFromArray(int64);
+		var int64Low   = getValueFromArray(int64.slice(0,4));
+		var int64Heigh = getValueFromArray(int64.slice(4,8));
+		var int64Array = [ int64Low,int64Heigh];
+		var int64Value = Number(uint64.compact([ int64Low,int64Heigh]));
+		var ul = buildUl(parentUl,int64_name);
+		$(LI).append("raw: " + int64Raw).appendTo(ul);
+		$(LI).append("array: [" + int64 + "]").appendTo(ul);
+		$(LI).append("int64: [" + int64Array + "]").appendTo(ul);
+		$(LI).append("value: " + int64Value).appendTo(ul);
+
+		return arrayTx;
+	}
 
 	function analyzeMosaicSupplyChange(arrayTx,ul){
 
@@ -181,7 +310,9 @@ $(function(){
 	//署名者、バージョン、転送タイプ
 	function analyzeSigning(arrayTx,ul){
 
-		arrayTx = appendRaw(arrayTx,ul,"signer",32);
+		var signer    = arrayTx.splice(0,32);
+		var ul2 = buildUl(ul,"signer");
+		$(LI).append("raw: " + getRawFromArray(signer)).appendTo(ul2);
 
 		//version
 		var version   = arrayTx.splice(0,2);
@@ -208,7 +339,10 @@ $(function(){
 	//転送
 	function analyzeTransfer(arrayTx,ul){
 
-		arrayTx = appendRaw(arrayTx,ul,"recipient",25);
+		recipient = arrayTx.splice(0,25);
+		var recipientRaw = getRawFromArray(recipient);
+		childUl = buildUl(ul,"recipient");
+		$(LI).append("raw: "   + recipientRaw  ).appendTo(childUl);
 
 		messageSize = arrayTx.splice(0,2);
 		messageSizeValue = getValueFromArray(messageSize) ;
@@ -238,228 +372,9 @@ $(function(){
 			var indexUl = $("<ul>").appendTo(childUl);
 //			arrayTx = analyzeMosaic(arrayTx,indexUl);
 			arrayTx = appendId(arrayTx,indexUl,"mosaic_id");
-			arrayTx = appendInt64(arrayTx,indexUl,"moaic_amount");
-
-
 		}
 		return arrayTx;
 
-	}
-
-	function analyzeLock(arrayTx,ul){
-		arrayTx = appendId(arrayTx,ul,"mosaic_id");
-		arrayTx = appendInt64(arrayTx,ul,"duration");
-		arrayTx = appendRaw(arrayTx,ul,"hash",32);
-		return arrayTx;
-	}
-
-	function analyzeRegisterNamespace(arrayTx,ul){
-
-		arrayTx = appendType(  arrayTx,ul,"namespace_type");
-		arrayTx = appendInt64( arrayTx,ul,"duration");
-		arrayTx = appendId(    arrayTx,ul,"namespace_id");
-		arrayTx = appendNumber(arrayTx,ul,"namespace_name_length");
-
-		var namespaceNameLength      = arrayTx.splice(0,1);
-		var namespaceNameLengthValue = getValueFromArray(namespaceNameLength);
-		var ul2 = buildUl(ul,"namespace_name_length");
-		$(LI).append("raw: "   + getRawFromArray(namespaceNameLength)).appendTo(ul2);
-		$(LI).append("value: " + namespaceNameLengthValue).appendTo(ul2);
-
-		namespaseName = arrayTx.splice(0,namespaceNameLengthValue );
-		namespaseNameRaw = getRawFromArray(namespaseName);
-
-		childUl = buildUl(ul,"namespace_name");
-		$(LI).append("raw: "   + getRawFromArray(namespaseName) ).appendTo(childUl);
-		$(LI).append("value: "   + dispPayload(namespaseNameRaw,0) ).appendTo(childUl);
-
-		return arrayTx;
-	}
-
-	function analyzeAddressAlias(arrayTx,ul){
-
-		arrayTx = appendType(arrayTx,ul,"action_type");
-		arrayTx = appendId(  arrayTx,ul,"namespace_id");
-		arrayTx = appendRaw(arrayTx,ul,"recipient",25);
-		return arrayTx;
-	}
-
-	function analyzeMosaicAlias(arrayTx,ul){
-		arrayTx = appendType(arrayTx,ul,"action_type");
-		arrayTx = appendId(  arrayTx,ul,"namespace_id");
-		arrayTx = appendId(  arrayTx,ul,"mosaic_id");
-		return arrayTx;
-	}
-
-	function analyzeSecretLock(arrayTx,ul){
-		arrayTx = appendId(   arrayTx,ul,"mosaic_id");
-		arrayTx = appendInt64(arrayTx,ul,"duration");
-		arrayTx = appendType( arrayTx,ul,"hash_algorithm");
-		arrayTx = appendRaw(arrayTx,ul,"secret",32);
-		arrayTx = appendRaw(arrayTx,ul,"recipient",25);
-		return arrayTx;
-	}
-
-	
-	function analyzeModifyAccountPropertyAddress(arrayTx,ul){
-		arrayTx = appendType(arrayTx,ul,"property_type");
-
-		var modificationCount = arrayTx.splice(0,1);
-		var modificationCountValue = getValueFromArray(modificationCount);
-		var childUl = buildUl(ul,"modification_count");
-		$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
-		$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
-
-		$(LI).append("modifications").appendTo(ul);
-		childUl = $("<ul>").appendTo(ul);
-
-		for(var i = 0; i < modificationCountValue; i++){
-
-			$(LI).append(i).appendTo(childUl);
-			var indexUl = $("<ul>").appendTo(childUl);
-
-			arrayTx = appendType(arrayTx,indexUl,"modification_type");
-			arrayTx = appendRaw(arrayTx,indexUl,"address",25);
-
-		}
-		return arrayTx;
-
-	}
-
-	function analyzeModifyAccountPropertyMosaic(arrayTx,ul){
-		arrayTx = appendType(arrayTx,ul,"property_type");
-
-		var modificationCount = arrayTx.splice(0,1);
-		var modificationCountValue = getValueFromArray(modificationCount);
-		var childUl = buildUl(ul,"modification_count");
-		$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
-		$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
-
-		$(LI).append("modifications").appendTo(ul);
-		childUl = $("<ul>").appendTo(ul);
-
-		for(var i = 0; i < modificationCountValue; i++){
-
-			$(LI).append(i).appendTo(childUl);
-			var indexUl = $("<ul>").appendTo(childUl);
-
-			arrayTx = appendType(arrayTx,indexUl,"modification_type");
-			arrayTx = appendId(   arrayTx,indexUl,"mosaic_id");
-		}
-		return arrayTx;
-	}
-
-	function analyzeModifyAccountPropertyEntityType(arrayTx,ul){
-		arrayTx = appendType(arrayTx,ul,"property_type");
-		var modificationCount = arrayTx.splice(0,1);
-		var modificationCountValue = getValueFromArray(modificationCount);
-		var childUl = buildUl(ul,"modification_count");
-		$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
-		$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
-
-		$(LI).append("modifications").appendTo(ul);
-		childUl = $("<ul>").appendTo(ul);
-
-		for(var i = 0; i < modificationCountValue; i++){
-
-			$(LI).append(i).appendTo(childUl);
-			var indexUl = $("<ul>").appendTo(childUl);
-
-			arrayTx = appendType(arrayTx,indexUl,"modification_type");
-
-			var entityType   = arrayTx.splice(0,2);
-			var entityTypeRaw = getRawFromArray(entityType)
-			var entityTypeHex = entityTypeRaw.substr(2,2) + entityTypeRaw.substr(0,2);
-			var modiUl = buildUl(indexUl,"entity_type");
-			$(LI).append("raw: " + entityTypeRaw).appendTo(modiUl);
-			$(LI).append("hex: 0x" + entityTypeHex).appendTo(modiUl);
-			$(LI).append("value: " + getValueFromArray(entityType) ).appendTo(modiUl);
-
-		}
-		return arrayTx;
-
-	}
-
-	function analyzeLinkAccount(arrayTx,ul){
-
-		arrayTx = appendRaw(arrayTx,ul,"public_key",32);
-		arrayTx = appendType(arrayTx,ul,"link_action");
-		return arrayTx;
-	}
-
-	function analyzeModifyMultisigAccount(arrayTx,ul){
-
-		arrayTx = appendType(arrayTx,ul,"min_removal_delta");
-		arrayTx = appendType(arrayTx,ul,"min_approval_delta");
-
-		var modificationCount = arrayTx.splice(0,1);
-		var modificationCountValue = getValueFromArray(modificationCount);
-		var childUl = buildUl(ul,"modification_count");
-		$(LI).append("raw: "   + getRawFromArray(modificationCount)  ).appendTo(childUl);
-		$(LI).append("value: " + modificationCountValue  ).appendTo(childUl);
-
-		$(LI).append("modifications").appendTo(ul);
-		childUl = $("<ul>").appendTo(ul);
-
-		for(var i = 0; i < modificationCountValue; i++){
-
-			$(LI).append(i).appendTo(childUl);
-			var indexUl = $("<ul>").appendTo(childUl);
-
-			arrayTx = appendType(arrayTx,indexUl,"modification_type");
-			arrayTx = appendRaw(arrayTx,indexUl,"cosignatory_publickey",32);
-		}
-		return arrayTx;
-
-	}
-
-
-
-
-
-
-
-
-
-	function appendRaw(arrayTx,parentUl,keyName,number){
-		var key = arrayTx.splice(0,number);
-		var ul = buildUl(parentUl,keyName);
-		$(LI).append("raw: "   + getRawFromArray(  key)).appendTo(ul);
-		return arrayTx;
-	}
-
-
-
-	function appendType(arrayTx,parentUl,type_name){
-		var type = arrayTx.splice(0,1);
-		var ul = buildUl(parentUl,type_name);
-		$(LI).append("raw: "   + getRawFromArray(  type)).appendTo(ul);
-		$(LI).append("value: " + getValueFromArray(type)).appendTo(ul);
-		return arrayTx;
-	}
-
-	function appendId(arrayTx,parentUl,id_name){
-		var id = arrayTx.splice(0,8);
-		var ul = buildUl(parentUl,id_name);
-		$(LI).append("raw: "   + getRawFromArray(id) ).appendTo(ul);
-		return arrayTx;
-	}
-
-	function appendInt64(arrayTx,parentUl,int64_name){
-
-		var int64       = arrayTx.splice(0,8);
-		var int64Raw = getRawFromArray(int64);
-		var int64Low   = getValueFromArray(int64.slice(0,4));
-		var int64Heigh = getValueFromArray(int64.slice(4,8));
-		var int64Array = [ int64Low,int64Heigh];
-		var int64Value = Number(uint64.compact([ int64Low,int64Heigh]));
-		var ul = buildUl(parentUl,int64_name);
-		$(LI).append("raw: " + int64Raw).appendTo(ul);
-		$(LI).append("array: [" + int64 + "]").appendTo(ul);
-		$(LI).append("int64: [" + int64Array + "]").appendTo(ul);
-		$(LI).append("value: " + int64Value).appendTo(ul);
-
-		return arrayTx;
 	}
 
 	function buildUl(ul,item){
