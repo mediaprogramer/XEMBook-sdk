@@ -240,7 +240,7 @@ $(function(){
 		arrayTx = appendType(  arrayTx,ul,"namespace_type");
 		arrayTx = appendInt64( arrayTx,ul,"duration");
 		arrayTx = appendId(    arrayTx,ul,"namespace_id");
-		arrayTx = appendNumber(arrayTx,ul,"namespace_name_length");
+//		arrayTx = appendNumber(arrayTx,ul,"namespace_name_length");
 
 		var namespaceNameLength 	 = arrayTx.splice(0,1);
 		var namespaceNameLengthValue = getValueFromArray(namespaceNameLength);
@@ -426,25 +426,6 @@ $(function(){
 
 		return arrayTx;
 	}
-
-	//to XEMBook-sdk
-	function publicKeyToAddress(publicKey, networkIdentifier){
-
-		let xembook = require("/main.js");
-
-		const decodedAddress = new Uint8Array(25);
-		decodedAddress[0] = networkIdentifier;
-
-		const publicKeyHash = sha3_256.arrayBuffer(publicKey);// publicKey:uint8
-		const ripemdHash = xembook.getRipemdHash(publicKeyHash);
-		array.copy(decodedAddress, ripemdHash, 20, 1);
-
-		const hash = sha3_256.arrayBuffer(decodedAddress.subarray(0, 20 + 1));
-		array.copy(decodedAddress, array.uint8View(hash), 4, 20 + 1);
-
-		return base32.encode(decodedAddress);
-	}
-
 
 	function appendType(arrayTx,parentUl,type_name){
 
