@@ -156,7 +156,7 @@ $(function(){
 		$(LI).append("raw: "   + getRawFromArray(divisibirity)	).appendTo(childUl);
 		$(LI).append("value: " + getValueFromArray(divisibirity)  ).appendTo(childUl);
 
-		if(durationProvided == 1){
+		if(true){//duration_provided is always true
 
 			arrayTx = appendType(arrayTx,ul,"indicate_duration");
 			arrayTx = appendInt64(arrayTx,ul,"duration");
