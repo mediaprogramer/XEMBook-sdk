@@ -1,16 +1,8 @@
 
 //NEM標準時
-let NEM_EPOCH = Date.UTC(2015, 2, 29, 0, 6, 25, 0);
 var HEX = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
 
 
-let importanceTransfer = 0x801; // 2049
-let multisigModification = 0x1001; // 4097
-let multisigSignature = 0x1002; // 4098
-let multisigTransaction = 0x1004; // 4100
-let provisionNamespace = 0x2001; // 8193
-let mosaicDefinition = 0x4001; // 16385
-let mosaicSupply = 0x4002; // 16386
 let CURRENT_NETWORK_ID = 104;
 var isHashAccess = false;
 var targetNode = "";
@@ -19,61 +11,6 @@ var lastHash = "";
 var currentFeeFactor = 0.05;
 
 
-		const readInt32 = (offset, bytes) => {
-			return bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;
-		};
-
-		const readInt16 = (offset, bytes) => {
-			return bytes[offset] | bytes[offset + 1] << 8;
-		};
-
-		// region flatbuffers region
-		const __offset = (val0, fieldPos, bytes) => {
-			const vtable = val0 - readInt32(val0, bytes);
-			return fieldPos < readInt16(vtable, bytes) ? readInt16(vtable + fieldPos, bytes) : 0;
-		};
-
-		let __vector_length = (offset, bytes) => {
-			return readInt32(offset + readInt32(offset, bytes), bytes);
-		};
-
-		let __indirect = (offset, bytes) => {
-			return offset + readInt32(offset, bytes);
-		};
-
-		let __vector = (offset, bytes) => {
-			return offset + readInt32(offset, bytes) + 4;
-		};
-
-		let findVector = (val0, fieldPos, bytes, size) => {
-			let offset = __offset(val0, fieldPos, bytes);
-			let offsetLong = offset + val0;
-			let vecStart = __vector(offsetLong, bytes);
-			let vecLength = __vector_length(offsetLong, bytes) * (size ? size : 1);
-			return offset ? bytes.slice(vecStart, vecStart + vecLength) : 0;
-		};
-
-		const findParam = (val0, fieldPos, bytes, numBytes) => {
-			let offset = __offset(val0, fieldPos, bytes);
-			return offset ? bytes.slice(offset + val0, offset + val0 + numBytes) : 0;
-		};
-
-		const findObjectStartPosition = (val0, fieldPos, bytes) => {
-			let offset = __offset(val0, fieldPos, bytes);
-			return __indirect(offset + val0, bytes);
-		};
-
-		let findArrayLength = (val0, fieldPos, bytes) => {
-			const offset = __offset(val0, fieldPos, bytes);
-			return offset ? __vector_length(val0 + offset, bytes) : 0;
-		};
-
-		let findObjectArrayElementStartPosition = (val0, fieldPos, bytes, index) => {
-			const offset = __offset(val0, fieldPos, bytes);
-			let vector = __vector(val0 + offset, bytes);
-			return __indirect(vector + index * 4, bytes);
-		};
-		// endregion
 
 	//to XEMBook-sdk
 	function publicKeyToAddress(publicKey, networkIdentifier){
