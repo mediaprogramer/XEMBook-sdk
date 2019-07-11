@@ -132,17 +132,6 @@ var currentFeeFactor = 0.05;
 		return uint8password;
 	};
 
-		function createTransactionHash(transactionPayload) {
-			const byteBuffer = Array.from(convert.hexToUint8(transactionPayload));
-			const signingBytes = byteBuffer
-				.slice(4, 36)
-				.concat(byteBuffer.slice(4 + 64, 4 + 64 + 32))
-				.concat(byteBuffer.splice(4 + 64 + 32, byteBuffer.length));
-
-			const hash = new Uint8Array(32);
-			sha3Hasher.func(hash, signingBytes, 32);
-			return convert.uint8ToHex(hash);
-		}
 
 
 
@@ -677,9 +666,23 @@ function serialize(transfer){
 	return resultBytes;
 }
 
-function signTransaction(keyPair,byteBuffer) {
+function createTransactionHash(transactionPayload,generationHash) {
+	const byteBuffer = Array.from(convert.hexToUint8(transactionPayload));
+	const signingBytes = byteBuffer
+		.slice(4, 36)
+		.concat(byteBuffer.slice(4 + 64, 4 + 64 + 32))
+		.concat(generationHash)
+		.concat(byteBuffer.splice(4 + 64 + 32, byteBuffer.length));
 
-	const signingBytes = byteBuffer.slice(4 + 64 + 32);
+	const hash = new Uint8Array(32);
+	sha3Hasher.func(hash, signingBytes, 32);
+	return convert.uint8ToHex(hash);
+}
+
+function signTransaction(keyPair, byteBuffer,generationHash) {
+
+	const generationHashBytes = Array.from(convert.hexToUint8(generationHash));
+	const signingBytes = generationHashBytes.concat(byteBuffer.slice(4 + 64 + 32));
 	//console.log(hashKey);
 	console.log(keyPair.privateKey);
 
@@ -694,10 +697,11 @@ function signTransaction(keyPair,byteBuffer) {
 
 	return {
 		payload,
-		hash: createTransactionHash(payload)
+		hash: createTransactionHash(payload, generationHashBytes)
 	};
 }
 
+//アグリゲートトランザクションに変換
 function toAggregateTransaction(resultBytes,_signer) {
 
 	resultBytes.splice(0, 4 + 64 + 32);// 0,100
@@ -711,7 +715,4 @@ function toAggregateTransaction(resultBytes,_signer) {
 		(resultBytes.length + 4 & 0x00ff0000) >> 16,
 		(resultBytes.length + 4 & 0xff000000) >> 24
 	]))).concat(resultBytes);
-
-
-
 }
