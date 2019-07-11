@@ -281,13 +281,13 @@ function getNodes(){
 			}else{
 				nodes = res["catapult_test"];
 			}
-			d.resolve(nodes);
+//			d.resolve(nodes);
+			d.resolve(["120.79.181.170"]); //elephant
 		},
 		function(res){
-			d.resolve(["13.114.200.132","40.90.163.78","52.194.207.217","40.90.163.32","47.107.245.217","18.228.92.190"]);
-//			d.resolve(["cow.48gh23s.xyz"]);
-//					d.resolve(["13.114.200.132","52.194.207.217","47.107.245.217"]);
-//			d.resolve(["alice2.nem.ninja","alice99.nem.ninja"]);
+
+//			d.resolve(["13.114.200.132","40.90.163.78","52.194.207.217","40.90.163.32","47.107.245.217","18.228.92.190"]);
+			d.resolve(["120.79.181.170"]); //elephant
 		}
 	);
 	return d.promise();
