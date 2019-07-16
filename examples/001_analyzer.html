@@ -11,9 +11,11 @@
 	<script src="../extlib/coders/convert.js"></script>
 	<script src="../bundle.js"></script>
 	<script src="../xembook2-sdk.js"></script>
+<script src="https://s3-ap-northeast-1.amazonaws.com/xembook.net/nem2-sdk/nem2-sdk-0.13.0.js"></script>
 
 <script>
 $(function(){
+	const nem = require("/home/ec2-user/node_modules/nem2-sdk");
 
 	const LI = "<li>";
 	const UL = "<ul>";
@@ -421,7 +423,9 @@ $(function(){
 		if(number == 25){
 			$(LI).append("address: "   + base32.encode(convert.hexToUint8(keyRaw))).appendTo(ul);
 		}else if(number == 32){
-			$(LI).append("address: "   + publicKeyToAddress(keyRaw,MIJIN_TEST)).appendTo(ul);
+			var address = nem.RawAddress;
+			var decoded = address.publicKeyToAddress(key, nem.NetworkType.MIJIN_TEST);
+			$(LI).append("address: "   + address.addressToString(decoded)).appendTo(ul);
 		}
 
 		return arrayTx;
